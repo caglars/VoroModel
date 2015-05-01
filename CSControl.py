@@ -25,7 +25,7 @@ class CSController:
 
         calculator.readData()
 
-        self.pressure = calculator.simRun(cont, self.particles)
+        calculator.simRun(cont, self.particles)
 
         t2 = time.time()
         print('it took %s seconds' % (t2 - t1))

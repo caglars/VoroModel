@@ -37,11 +37,6 @@ class CSCalculator():
         self.pressure = self.readDataFor('initialPressure.dat')
         self.porosity = self.readDataFor('porosity.dat')
 
-        print("After getting permeability")
-
-        print(self.porosity)
-
-
 
 
     def readDataFor(self, fileName):
@@ -55,25 +50,25 @@ class CSCalculator():
 
         words = data.split()
 
-        print(words)
+        #print(words)
 
         for text in words:
             self.temp.append(text.split('*'))
 
-        print(self.temp)
+        #print(self.temp)
 
         for count, value in enumerate(self.temp):
-            print(count)
-            print(value)
+            #print(count)
+            #print(value)
             if len(value) == 1:
-                print(float(value[0]))
+                #print(float(value[0]))
                 self.valueList.append(float(value[0]))
             else:
-                print('no %s' % float(value[1]))
+                #print('no %s' % float(value[1]))
                 for count in range(0, int(value[0])):
                     self.valueList.append(float(value[1]))
 
-        print(self.valueList)
+        #print(self.valueList)
 
         self.temp.clear()
 
@@ -150,7 +145,7 @@ class CSCalculator():
         length = 0
         totalCoefficient = 0
 
-        numberOfTimeSteps = 2
+        numberOfTimeSteps = 10
 
         x = 0
         y = 0
@@ -174,8 +169,9 @@ class CSCalculator():
                     # print("neighbor %s and face_area = %s" % (neighbor, cell.face_areas()[neighborCounter]))
                     if neighbor >= 0:
                         length = self.distance(aContainer[cell.id].pos, aContainer[neighbor].pos)
-                        coefficient[cell.id][neighbor] = betaConstant * cell.face_areas()[
-                            neighborCounter] * self.permeability[cell.id] / (viscosity * formationVolumeFactor * length)
+                        coefficient[cell.id][neighbor] = (betaConstant * cell.face_areas()[neighborCounter]
+                                                          * self.permeability[cell.id]
+                                                          / (viscosity * formationVolumeFactor * length))
                         totalCoefficient = totalCoefficient + coefficient[cell.id][neighbor]
                         # print("i = %s, neighbor = %s, neighborCounter = %s" % (cell.id, neighbor, neighborCounter))
 
@@ -183,8 +179,9 @@ class CSCalculator():
                     pass
                     neighborCounter = neighborCounter + 1
 
-                gamma[cell.id] = (cell.volume() * self.porosity[cell.id] * liquidCompressibility) / (
-                    alphaConstant * referansFormationVolumeFactor)
+                gamma[cell.id] = ((cell.volume() * self.porosity[cell.id] * liquidCompressibility)
+                                  / (alphaConstant * referansFormationVolumeFactor))
+
                 coefficient[cell.id][cell.id] = -totalCoefficient - gamma[cell.id] / deltaTime
 
                 rightHandSide[cell.id] = -productionRate[cell.id] - (gamma[cell.id] / deltaTime) * self.pressure[cell.id]
@@ -206,9 +203,7 @@ class CSCalculator():
 
             myPlotter.gnuplot(aContainer)
 
-            myPlotter.graphr(aContainer)
-
-            return self.pressure
+            myPlotter.graphr(aContainer, timeStep)
 
             pass
 

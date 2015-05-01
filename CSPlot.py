@@ -30,9 +30,9 @@ class CSPlotter():
             verticesFile.write("\n\n\n")
             pass
 
-    def graphr(self, aContainer):
+    def graphr(self, aContainer, timeStep):
 
-        pressureOutFile = open("pressureOut.csv", "w")
+        pressureOutFile = open("pressureOut{0}.csv".format(timeStep), "w")
 
         pressureOutFile.write("DataFormat, 102\n")
         pressureOutFile.write("Memo1\n")
@@ -42,4 +42,6 @@ class CSPlotter():
             pressureOutFile.write("%s %s %s\n" %
                                   (aContainer[x].pos[0], aContainer[x].pos[1], self.pressure[x]))
             pass
+
+        pressureOutFile.close()
 

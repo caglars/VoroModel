@@ -19,6 +19,8 @@ class CSCalculator():
         self.boxLimits = [[self.x_min, self.y_min, self.z_min],
                           [self.x_max, self.y_max, self.z_max]]
         self.pressure = [6000 for x in range(self.particles)]
+        self.permeability = [0.01 for x in range(self.particles)]
+        self.porosity = [0.18 for x in range(self.particles)]
         pass
 
     def rnd(self, myBoxLimits):
@@ -32,16 +34,13 @@ class CSCalculator():
     def readData(self):
 
         self.permeability = self.readDataFor('permeability.dat')
+        self.pressure = self.readDataFor('initialPressure.dat')
+        self.porosity = self.readDataFor('porosity.dat')
 
         print("After getting permeability")
 
-        print(self.permeability)
+        print(self.porosity)
 
-        self.pressure = self.readDataFor('initialPressure.dat')
-
-        print("After getting pressure")
-
-        print (self.pressure)
 
 
 
@@ -141,10 +140,8 @@ class CSCalculator():
 
         mySolver = CSSolution.CSSolver()
 
-        # permeability = 0.015
         viscosity = 10
         formationVolumeFactor = 1
-        porosity = 0.18
         liquidCompressibility = 3.5E-6
         referansFormationVolumeFactor = 1
         alphaConstant = 5.615
@@ -186,7 +183,7 @@ class CSCalculator():
                     pass
                     neighborCounter = neighborCounter + 1
 
-                gamma[cell.id] = (cell.volume() * porosity * liquidCompressibility) / (
+                gamma[cell.id] = (cell.volume() * self.porosity[cell.id] * liquidCompressibility) / (
                     alphaConstant * referansFormationVolumeFactor)
                 coefficient[cell.id][cell.id] = -totalCoefficient - gamma[cell.id] / deltaTime
 

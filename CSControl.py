@@ -12,7 +12,7 @@ class CSController:
 
 
     def main(self):
-        self.pressure = [6000 for x in range(self.particles)]
+        #self.pressure = [6000 for x in range(self.particles)]
         self.respond()
 
     def respond(self):

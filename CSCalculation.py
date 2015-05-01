@@ -9,9 +9,6 @@ import CSPlot
 
 class CSCalculator():
     def __init__(self):
-        #global particles
-        #global boxLimits
-        #global x_min, x_max, y_min, y_max, z_min, z_max
         self.particles = 50
         self.x_min = -1
         self.x_max = 6001
@@ -21,6 +18,7 @@ class CSCalculator():
         self.z_max = 81
         self.boxLimits = [[self.x_min, self.y_min, self.z_min],
                           [self.x_max, self.y_max, self.z_max]]
+        self.pressure = [6000 for x in range(self.particles)]
         pass
 
     def rnd(self, myBoxLimits):
@@ -33,7 +31,7 @@ class CSCalculator():
 
     def readData(self):
 
-        self.perm = []
+        self.temp = []
         self.permeability = []
 
         with open('permeability.dat', 'r') as f:
@@ -46,11 +44,11 @@ class CSCalculator():
         print(words)
 
         for text in words:
-            self.perm.append(text.split('*'))
+            self.temp.append(text.split('*'))
 
-        print(self.perm)
+        print(self.temp)
 
-        for count, value in enumerate(self.perm):
+        for count, value in enumerate(self.temp):
             print(count)
             print(value)
             if len(value) == 1:
@@ -62,6 +60,35 @@ class CSCalculator():
                     self.permeability.append(float(value[1]))
 
         print(self.permeability)
+
+        self.temp.clear()
+
+        with open('initialPressure.dat', 'r') as f:
+            data = f.read()
+
+        f.close()
+
+        words = data.split()
+
+        print(words)
+
+        for text in words:
+            self.temp.append(text.split('*'))
+
+        print(self.temp)
+
+        for count, value in enumerate(self.temp):
+            print(count)
+            print(value)
+            if len(value) == 1:
+                print(float(value[0]))
+                self.pressure.append(float(value[0]))
+            else:
+                print('no %s' % float(value[1]))
+                for count in range(0, int(value[0])):
+                    self.pressure.append(float(value[1]))
+
+        print(self.pressure)
 
     def calculate(self, numberOfParticles):
 
@@ -144,7 +171,7 @@ class CSCalculator():
 
         productionRate = [0 for x in range(self.particles)]
         gamma = [0 for x in range(self.particles)]
-        self.pressure = [6000 for x in range(self.particles)]
+        # self.pressure = [6000 for x in range(self.particles)]
         rightHandSide = [0 for x in range(self.particles)]
         coefficient = [[0 for x in range(self.particles)] for x in range(self.particles)]
 

@@ -3,6 +3,7 @@ __author__ = 'caglars'
 import random
 import tess
 import math
+import numpy
 
 import CSSolution
 import CSPlot
@@ -130,7 +131,7 @@ class CSCalculator():
                      + math.pow((coordParticle2[2] - coordParticle1[2]), 2))
 
 
-    def simRun(self, aContainer, numberOfParticles):
+    def simRunIncompressible(self, aContainer, numberOfParticles):
         self.particles = numberOfParticles
 
         mySolver = CSSolution.CSSolver()
@@ -151,11 +152,15 @@ class CSCalculator():
         y = 0
         z = 0
 
-        productionRate = [0 for x in range(self.particles)]
-        gamma = [0 for x in range(self.particles)]
-        # self.pressure = [6000 for x in range(self.particles)]
-        rightHandSide = [0 for x in range(self.particles)]
-        coefficient = [[0 for x in range(self.particles)] for x in range(self.particles)]
+
+        #productionRate = [0 for x in range(self.particles)]
+        #gamma = [0 for x in range(self.particles)]
+        #rightHandSide = [0 for x in range(self.particles)]
+        #coefficient = [[0 for x in range(self.particles)] for x in range(self.particles)]
+        productionRate = numpy.zeros(self.particles)
+        gamma = numpy.zeros(self.particles)
+        rightHandSide = numpy.zeros(self.particles)
+        coefficient = numpy.zeros((self.particles, self.particles))
 
         #productionRate[particles - 1] = -150.0
         #productionRate[particles - 2] = -200.0
@@ -185,6 +190,113 @@ class CSCalculator():
                 coefficient[cell.id][cell.id] = -totalCoefficient - gamma[cell.id] / deltaTime
 
                 rightHandSide[cell.id] = -productionRate[cell.id] - (gamma[cell.id] / deltaTime) * self.pressure[cell.id]
+
+                # print("cell id = %s volume = %s" % (cell.id, cell.volume()))
+                pass
+
+            # solutionArray = mySolver.simpleSolver(particles, coefficient, rightHandSide, pressure)
+            solutionArray = mySolver.numpySolver(coefficient, rightHandSide)
+
+            for x in range(0, self.particles):
+                self.pressure[x] = solutionArray[x]
+                pass
+
+            print("Time step: %s" % timeStep)
+            print("pressure is written to pressureOut.csv")
+
+            myPlotter = CSPlot.CSPlotter(self.particles, self.pressure)
+
+            myPlotter.gnuplot(aContainer)
+
+            myPlotter.graphr(aContainer, timeStep)
+
+            pass
+
+
+    def simRunSlightlyCompressible(self, aContainer, numberOfParticles):
+        self.particles = numberOfParticles
+
+        mySolver = CSSolution.CSSolver()
+
+        viscosity = 10
+        formationVolumeFactor = 1
+        liquidCompressibility = 3.5E-6
+        referansFormationVolumeFactor = 1
+        fluidDensity = 62.4
+        gravityAcceleration = 32.17
+
+        alphaConstant = 5.615
+        betaConstant = 1.127
+        gammaConstant = 0.21584e-3
+
+        deltaTime = 15
+        length = 0
+        totalCoefficient = 0
+
+        numberOfTimeSteps = 1
+
+        x = 0
+        y = 0
+        z = 0
+
+
+
+        productionRate = numpy.zeros(self.particles)
+        gamma = numpy.zeros(self.particles)
+        gravity = numpy.zeros(self.particles, self.particles)
+        rightHandSide = numpy.zeros(self.particles)
+        rightHandSideGravity = numpy.zeros(self.particles)
+        coefficient = numpy.zeros((self.particles, self.particles))
+
+
+        # The density of the fluid should change and so this parameter
+        # TODO I need to calculate this value as pressure and density changes
+        gammaFluid = gammaConstant*fluidDensity*gravityAcceleration
+
+
+        #productionRate[particles - 1] = -150.0
+        #productionRate[particles - 2] = -200.0
+        productionRate[self.particles - 1] = -100.0
+
+        for timeStep in range(0, numberOfTimeSteps):
+            for cell in aContainer:
+                neighborCounter = 0
+                totalCoefficient = 0
+                totalGravity = 0
+                for neighbor in cell.neighbors():
+                    # print("neighbor %s and face_area = %s" % (neighbor, cell.face_areas()[neighborCounter]))
+                    if neighbor >= 0:
+                        length = self.distance(aContainer[cell.id].pos, aContainer[neighbor].pos)
+                        coefficient[cell.id][neighbor] = (betaConstant * cell.face_areas()[neighborCounter]
+                                                          * self.permeability[cell.id]
+                                                          / (viscosity * formationVolumeFactor * length))
+
+                        # TODO gammaFluid should change for each neighbor according to their pressure and density
+                        gravity[cell.id][neighbor] = gammaFluid * coefficient[cell.id][neighbor]
+
+                        totalGravity = totalGravity + gravity[cell.id][neighbor]
+                        totalCoefficient = totalCoefficient + coefficient[cell.id][neighbor]
+                        # print("i = %s, neighbor = %s, neighborCounter = %s" % (cell.id, neighbor, neighborCounter))
+
+                        pass
+                    pass
+                    neighborCounter = neighborCounter + 1
+
+
+                # Since the fluid is slightly compressible,
+                # TODO the gamma value should be calculated using equation 8.94 in Page 188
+
+                gamma[cell.id] = ((cell.volume() * self.porosity[cell.id] * liquidCompressibility)
+                                  / (alphaConstant * referansFormationVolumeFactor))
+
+
+                coefficient[cell.id][cell.id] = -totalCoefficient - (gamma[cell.id] / deltaTime)
+
+                # TODO The gravity CG value should be checked from the equation
+                gravity[cell.id][cell.id] = -totalGravity
+
+
+                rightHandSide[cell.id] = -(productionRate[cell.id] + (gamma[cell.id] / deltaTime) * self.pressure[cell.id])
 
                 # print("cell id = %s volume = %s" % (cell.id, cell.volume()))
                 pass

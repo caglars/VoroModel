@@ -25,7 +25,9 @@ class CSController:
 
         calculator.readData()
 
-        calculator.simRun(cont, self.particles)
+        #calculator.simRunIncompressible(cont, self.particles)
+
+        calculator.simRunSlightlyCompressible(cont, self.particles)
 
         t2 = time.time()
         print('it took %s seconds' % (t2 - t1))

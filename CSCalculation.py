@@ -31,39 +31,25 @@ class CSCalculator():
 
     def readData(self):
 
-        self.temp = []
-        self.permeability = []
+        self.permeability = self.readDataFor('permeability.dat')
 
-        with open('permeability.dat', 'r') as f:
-            data = f.read()
-
-        f.close()
-
-        words = data.split()
-
-        print(words)
-
-        for text in words:
-            self.temp.append(text.split('*'))
-
-        print(self.temp)
-
-        for count, value in enumerate(self.temp):
-            print(count)
-            print(value)
-            if len(value) == 1:
-                print(float(value[0]))
-                self.permeability.append(float(value[0]))
-            else:
-                print('no %s' % float(value[1]))
-                for count in range(0, int(value[0])):
-                    self.permeability.append(float(value[1]))
+        print("After getting permeability")
 
         print(self.permeability)
 
-        self.temp.clear()
+        self.pressure = self.readDataFor('initialPressure.dat')
 
-        with open('initialPressure.dat', 'r') as f:
+        print("After getting pressure")
+
+        print (self.pressure)
+
+
+
+    def readDataFor(self, fileName):
+        self.temp = []
+        self.valueList = []
+
+        with open(fileName, 'r') as f:
             data = f.read()
 
         f.close()
@@ -82,13 +68,17 @@ class CSCalculator():
             print(value)
             if len(value) == 1:
                 print(float(value[0]))
-                self.pressure.append(float(value[0]))
+                self.valueList.append(float(value[0]))
             else:
                 print('no %s' % float(value[1]))
                 for count in range(0, int(value[0])):
-                    self.pressure.append(float(value[1]))
+                    self.valueList.append(float(value[1]))
 
-        print(self.pressure)
+        print(self.valueList)
+
+        self.temp.clear()
+
+        return self.valueList
 
     def calculate(self, numberOfParticles):
 

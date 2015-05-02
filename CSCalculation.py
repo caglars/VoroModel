@@ -233,7 +233,7 @@ class CSCalculator():
         length = 0
         totalCoefficient = 0
 
-        numberOfTimeSteps = 1
+        numberOfTimeSteps = 10
 
         x = 0
         y = 0
@@ -243,16 +243,16 @@ class CSCalculator():
 
         productionRate = numpy.zeros(self.particles)
         gamma = numpy.zeros(self.particles)
-        gravity = numpy.zeros(self.particles, self.particles)
+        gravity = numpy.zeros((self.particles, self.particles))
         rightHandSide = numpy.zeros(self.particles)
-        rightHandSideGravity = numpy.zeros(self.particles)
+        rightHandSideGravity = numpy.zeros((self.particles, self.particles))
         coefficient = numpy.zeros((self.particles, self.particles))
 
 
         # The density of the fluid should change and so this parameter
         # TODO I need to calculate this value as pressure and density changes
         gammaFluid = gammaConstant*fluidDensity*gravityAcceleration
-
+        print (gammaFluid)
 
         #productionRate[particles - 1] = -150.0
         #productionRate[particles - 2] = -200.0
@@ -263,6 +263,7 @@ class CSCalculator():
                 neighborCounter = 0
                 totalCoefficient = 0
                 totalGravity = 0
+                totalRightHandSideGravity = 0
                 for neighbor in cell.neighbors():
                     # print("neighbor %s and face_area = %s" % (neighbor, cell.face_areas()[neighborCounter]))
                     if neighbor >= 0:
@@ -273,9 +274,9 @@ class CSCalculator():
 
                         # TODO gammaFluid should change for each neighbor according to their pressure and density
                         gravity[cell.id][neighbor] = gammaFluid * coefficient[cell.id][neighbor]
-
-                        totalGravity = totalGravity + gravity[cell.id][neighbor]
-                        totalCoefficient = totalCoefficient + coefficient[cell.id][neighbor]
+                        totalRightHandSideGravity += gravity[cell.id][neighbor]*aContainer[neighbor].pos[2]
+                        totalGravity += gravity[cell.id][neighbor]
+                        totalCoefficient += coefficient[cell.id][neighbor]
                         # print("i = %s, neighbor = %s, neighborCounter = %s" % (cell.id, neighbor, neighborCounter))
 
                         pass
@@ -285,6 +286,7 @@ class CSCalculator():
 
                 # Since the fluid is slightly compressible,
                 # TODO the gamma value should be calculated using equation 8.94 in Page 188
+                # this version assumes constant porosity
 
                 gamma[cell.id] = ((cell.volume() * self.porosity[cell.id] * liquidCompressibility)
                                   / (alphaConstant * referansFormationVolumeFactor))
@@ -295,8 +297,10 @@ class CSCalculator():
                 # TODO The gravity CG value should be checked from the equation
                 gravity[cell.id][cell.id] = -totalGravity
 
-
-                rightHandSide[cell.id] = -(productionRate[cell.id] + (gamma[cell.id] / deltaTime) * self.pressure[cell.id])
+                totalRightHandSideGravity += gravity[cell.id][cell.id]*aContainer[cell.id].pos[2]
+                rightHandSide[cell.id] = -(productionRate[cell.id]
+                                           + (gamma[cell.id] / deltaTime) * self.pressure[cell.id]
+                                           - totalRightHandSideGravity)
 
                 # print("cell id = %s volume = %s" % (cell.id, cell.volume()))
                 pass

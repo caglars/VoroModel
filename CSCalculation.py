@@ -4,13 +4,14 @@ import random
 import tess
 import math
 import numpy
+from scipy import stats
 
 import CSSolution
 import CSPlot
 
 class CSCalculator():
     def __init__(self):
-        self.particles = 50
+        self.particles = 5
         self.x_min = -1
         self.x_max = 6001
         self.y_min = -1
@@ -20,7 +21,9 @@ class CSCalculator():
         self.boxLimits = [[self.x_min, self.y_min, self.z_min],
                           [self.x_max, self.y_max, self.z_max]]
         self.pressure = [6000 for x in range(self.particles)]
-        self.permeability = [0.01 for x in range(self.particles)]
+        self.permeabilityX = [0.01 for x in range(self.particles)]
+        self.permeabilityY = [0.01 for x in range(self.particles)]
+        self.permeabilityZ = [0.01 for x in range(self.particles)]
         self.porosity = [0.18 for x in range(self.particles)]
         pass
 
@@ -34,7 +37,9 @@ class CSCalculator():
 
     def readData(self):
 
-        self.permeability = self.readDataFor('permeability.dat')
+        self.permeabilityX = self.readDataFor('permeabilityX.dat')
+        self.permeabilityY = self.readDataFor('permeabilityY.dat')
+        self.permeabilityZ = self.readDataFor('permeabilityZ.dat')
         self.pressure = self.readDataFor('initialPressure.dat')
         self.porosity = self.readDataFor('porosity.dat')
 
@@ -109,13 +114,19 @@ class CSCalculator():
         cellList.append([5000, 5000, 40])
         cellList.append([3000, 3000, 40])
 
-        '''
+
 
         for x in range(0, self.particles-1):
             cellList.append(self.rnd(self.boxLimits))
             pass
         cellList.append([3000, 3000, 40])
 
+        '''
+        cellList.append([1000, 5000, 10])
+        cellList.append([1000, 4000, 20])
+        cellList.append([3000, 3000, 30])
+        cellList.append([4000, 2000, 40])
+        cellList.append([5000, 1000, 50])
 
 
         cntr = tess.Container(cellList, limits=[(self.x_min, self.y_min, self.z_min),
@@ -129,6 +140,21 @@ class CSCalculator():
         return math.sqrt(math.pow((coordParticle2[0] - coordParticle1[0]), 2)
                      + math.pow((coordParticle2[1] - coordParticle1[1]), 2)
                      + math.pow((coordParticle2[2] - coordParticle1[2]), 2))
+
+    def getPermeability(self, cellPosition, neighborPosition, cellId, neighborId):
+        deltaX = abs(cellPosition[0] - neighborPosition[0])
+        deltaY = abs(cellPosition[1] - neighborPosition[1])
+        deltaZ = abs(cellPosition[2] - neighborPosition[2])
+        if deltaX == 0:
+            # y and z
+            radian = math.atan(deltaZ/deltaY)
+            print ("radian %s" % radian)
+            permYPrime = stats.hmean([math.cos(radian)*self.permeabilityY[cellId], math.cos(radian)*self.permeabilityY[neighborId]])
+            permZPrime = stats.hmean([math.cos(radian)*self.permeabilityZ[cellId], math.cos(radian)*self.permeabilityZ[neighborId]])
+            print("yP %s zP %s" % (permYPrime, permZPrime))
+            return math.sqrt(permYPrime**2 + permZPrime**2)
+        print("x %s y %s z %s" % (deltaX, deltaY, deltaZ))
+        return 0
 
 
     def simRunIncompressible(self, aContainer, numberOfParticles):
@@ -148,9 +174,6 @@ class CSCalculator():
 
         numberOfTimeSteps = 10
 
-        x = 0
-        y = 0
-        z = 0
 
 
         #productionRate = [0 for x in range(self.particles)]
@@ -175,7 +198,7 @@ class CSCalculator():
                     if neighbor >= 0:
                         length = self.distance(aContainer[cell.id].pos, aContainer[neighbor].pos)
                         coefficient[cell.id][neighbor] = (betaConstant * cell.face_areas()[neighborCounter]
-                                                          * self.permeability[cell.id]
+                                                          * self.permeabilityX[cell.id]
                                                           / (viscosity * formationVolumeFactor * length))
                         totalCoefficient = totalCoefficient + coefficient[cell.id][neighbor]
                         # print("i = %s, neighbor = %s, neighborCounter = %s" % (cell.id, neighbor, neighborCounter))
@@ -233,11 +256,13 @@ class CSCalculator():
         length = 0
         totalCoefficient = 0
 
-        numberOfTimeSteps = 10
+        numberOfTimeSteps = 1
 
         x = 0
         y = 0
         z = 0
+
+
 
 
 
@@ -268,8 +293,10 @@ class CSCalculator():
                     # print("neighbor %s and face_area = %s" % (neighbor, cell.face_areas()[neighborCounter]))
                     if neighbor >= 0:
                         length = self.distance(aContainer[cell.id].pos, aContainer[neighbor].pos)
+                        self.permeability = self.getPermeability(aContainer[cell.id].pos, aContainer[neighbor].pos, cell.id, neighbor)
+                        print (self.permeability)
                         coefficient[cell.id][neighbor] = (betaConstant * cell.face_areas()[neighborCounter]
-                                                          * self.permeability[cell.id]
+                                                          * self.permeability
                                                           / (viscosity * formationVolumeFactor * length))
 
                         # TODO gammaFluid should change for each neighbor according to their pressure and density

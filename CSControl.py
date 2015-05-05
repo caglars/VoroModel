@@ -7,7 +7,7 @@ import CSPlot
 
 class CSController:
     def __init__(self):
-        self.particles = 50
+        self.particles = 5
 
 
 

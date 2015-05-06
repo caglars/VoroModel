@@ -11,7 +11,7 @@ import CSPlot
 
 class CSCalculator():
     def __init__(self):
-        self.particles = 5
+        self.particles = 25
         self.x_min = -1
         self.x_max = 6001
         self.y_min = -1
@@ -87,46 +87,48 @@ class CSCalculator():
         # x, y, z, r = None
         cellList = []
 
-        '''
-        cellList.append([1000, 1000, 40])
-        cellList.append([1000, 2000, 40])
-        cellList.append([1000, 3000, 40])
-        cellList.append([1000, 4000, 40])
-        cellList.append([1000, 5000, 40])
+
+        cellList.append([1000, 1000, 50])
+        cellList.append([1000, 2000, 50])
+        cellList.append([1000, 3000, 50])
+        cellList.append([1000, 4000, 50])
+        cellList.append([1000, 5000, 50])
         cellList.append([2000, 1000, 40])
         cellList.append([2000, 2000, 40])
         cellList.append([2000, 3000, 40])
         cellList.append([2000, 4000, 40])
         cellList.append([2000, 5000, 40])
-        cellList.append([3000, 1000, 40])
-        cellList.append([3000, 2000, 40])
-        cellList.append([3000, 4000, 40])
-        cellList.append([3000, 5000, 40])
-        cellList.append([4000, 1000, 40])
-        cellList.append([4000, 2000, 40])
-        cellList.append([4000, 3000, 40])
-        cellList.append([4000, 4000, 40])
-        cellList.append([4000, 5000, 40])
-        cellList.append([5000, 1000, 40])
-        cellList.append([5000, 2000, 40])
-        cellList.append([5000, 3000, 40])
-        cellList.append([5000, 4000, 40])
-        cellList.append([5000, 5000, 40])
-        cellList.append([3000, 3000, 40])
+        cellList.append([3000, 1000, 30])
+        cellList.append([3000, 2000, 30])
+        cellList.append([3000, 4000, 30])
+        cellList.append([3000, 5000, 30])
+        cellList.append([4000, 1000, 20])
+        cellList.append([4000, 2000, 20])
+        cellList.append([4000, 3000, 20])
+        cellList.append([4000, 4000, 20])
+        cellList.append([4000, 5000, 20])
+        cellList.append([5000, 1000, 10])
+        cellList.append([5000, 2000, 10])
+        cellList.append([5000, 3000, 10])
+        cellList.append([5000, 4000, 10])
+        cellList.append([5000, 5000, 10])
+        cellList.append([3000, 3000, 30])
 
-
+        '''
 
         for x in range(0, self.particles-1):
             cellList.append(self.rnd(self.boxLimits))
             pass
         cellList.append([3000, 3000, 40])
 
-        '''
+
         cellList.append([1000, 5000, 10])
         cellList.append([2000, 4000, 20])
         cellList.append([3000, 3000, 20])
         cellList.append([4000, 2000, 40])
         cellList.append([5000, 1000, 50])
+
+        '''
 
 
         cntr = tess.Container(cellList, limits=[(self.x_min, self.y_min, self.z_min),
@@ -263,7 +265,7 @@ class CSCalculator():
         #print("x %s y %s z %s" % (deltaX, deltaY, deltaZ))
         return 0
 
-
+    #TODO simRunIncompressible should be updated
     def simRunIncompressible(self, aContainer, numberOfParticles):
         self.particles = numberOfParticles
 
@@ -374,7 +376,6 @@ class CSCalculator():
         gamma = numpy.zeros(self.particles)
         gravity = numpy.zeros((self.particles, self.particles))
         rightHandSide = numpy.zeros(self.particles)
-        #rightHandSideGravity = numpy.zeros((self.particles, self.particles))
         coefficient = numpy.zeros((self.particles, self.particles))
 
 
@@ -385,7 +386,7 @@ class CSCalculator():
 
         #productionRate[particles - 1] = -150.0
         #productionRate[particles - 2] = -200.0
-        #productionRate[self.particles - 1] = -100.0
+        productionRate[self.particles - 1] = -100.0
 
         for timeStep in range(0, numberOfTimeSteps):
             for cell in aContainer:
@@ -454,6 +455,8 @@ class CSCalculator():
             myPlotter.graphr(aContainer, timeStep)
 
             myPlotter.pressureAtParticle(4, timeStep, self.pressure)
+
+            myPlotter.permeabilityGraphr(aContainer, self.permeabilityX, self.permeabilityY, self.permeabilityZ)
 
 
             pass

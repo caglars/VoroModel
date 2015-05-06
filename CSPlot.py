@@ -52,4 +52,43 @@ class CSPlotter():
 
         pressureAtParticleFile.close()
 
+    def permeabilityGraphr(self, aContainer, permeabilityX, permeabilityY, permeabilityZ):
 
+        permXGraphrFile = open("permXGraphr.csv", "w")
+
+        permXGraphrFile.write("DataFormat, 102\n")
+        permXGraphrFile.write("Memo1\n")
+        permXGraphrFile.write("Memo2\n")
+
+        for x in range(0, len(permeabilityX)):
+            permXGraphrFile.write("%s %s %s\n" %
+                                  (aContainer[x].pos[0], aContainer[x].pos[1], permeabilityX[x]))
+            pass
+
+        permXGraphrFile.close()
+
+        permYGraphrFile = open("permYGraphr.csv", "w")
+
+        permYGraphrFile.write("DataFormat, 102\n")
+        permYGraphrFile.write("Memo1\n")
+        permYGraphrFile.write("Memo2\n")
+
+        for x in range(0, len(permeabilityY)):
+            permYGraphrFile.write("%s %s %s\n" %
+                                  (aContainer[x].pos[0], aContainer[x].pos[1], permeabilityY[x]))
+            pass
+
+        permYGraphrFile.close()
+
+        permZGraphrFile = open("permZGraphr.csv", "w")
+
+        permZGraphrFile.write("DataFormat, 102\n")
+        permZGraphrFile.write("Memo1\n")
+        permZGraphrFile.write("Memo2\n")
+
+        for x in range(0, len(permeabilityZ)):
+            permZGraphrFile.write("%s %s %s\n" %
+                                  (aContainer[x].pos[0], aContainer[x].pos[1], permeabilityZ[x]))
+            pass
+
+        permZGraphrFile.close()

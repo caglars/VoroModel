@@ -45,3 +45,11 @@ class CSPlotter():
 
         pressureOutFile.close()
 
+    def pressureAtParticle(self, particle, timeStep, pressure):
+        pressureAtParticleFile = open("pressureAtParticle{}.dat".format(particle), "a")
+
+        pressureAtParticleFile.write("%s %s\n" % (timeStep, pressure[particle]))
+
+        pressureAtParticleFile.close()
+
+

@@ -17,7 +17,7 @@ class CSCalculator():
         self.y_min = -1
         self.y_max = 6001
         self.z_min = -1
-        self.z_max = 81
+        self.z_max = 61
         self.boxLimits = [[self.x_min, self.y_min, self.z_min],
                           [self.x_max, self.y_max, self.z_max]]
         self.pressure = [6000 for x in range(self.particles)]
@@ -125,8 +125,8 @@ class CSCalculator():
         cellList.append([1000, 5000, 10])
         cellList.append([1000, 4000, 20])
         cellList.append([3000, 3000, 30])
-        cellList.append([4000, 2000, 40])
-        cellList.append([5000, 1000, 50])
+        cellList.append([4000, 3000, 40])
+        cellList.append([5000, 3000, 50])
 
 
         cntr = tess.Container(cellList, limits=[(self.x_min, self.y_min, self.z_min),
@@ -141,19 +141,34 @@ class CSCalculator():
                      + math.pow((coordParticle2[1] - coordParticle1[1]), 2)
                      + math.pow((coordParticle2[2] - coordParticle1[2]), 2))
 
-    def getPermeability(self, cellPosition, neighborPosition, cellId, neighborId):
+    def getPermeability(self, aContainer, cellId, neighborId):
+        cellPosition = aContainer[cellId].pos
+        neighborPosition = aContainer[neighborId].pos
+        cellVolume = aContainer[cellId].volume()
+        neighborVolume = aContainer[neighborId].volume()
         deltaX = abs(cellPosition[0] - neighborPosition[0])
         deltaY = abs(cellPosition[1] - neighborPosition[1])
         deltaZ = abs(cellPosition[2] - neighborPosition[2])
+
+
         if deltaX == 0:
             # y and z
             radian = math.atan(deltaZ/deltaY)
+            permAverageY = (cellVolume*self.permeabilityY[cellId]+neighborVolume*self.permeabilityY[neighborId])/(cellVolume+neighborVolume)
+            permAverageZ = (cellVolume*self.permeabilityZ[cellId]+neighborVolume*self.permeabilityZ[neighborId])/(cellVolume+neighborVolume)
+            print("cell %s and neigh %s" % (cellId, neighborId))
+            print("cell volume %s and neighbor volume %s" % (cellVolume, neighborVolume))
+            print("cell permY %s and neighbor permY %s" % (self.permeabilityY[cellId],self.permeabilityY[neighborId]))
+            print("cell permZ %s and neighbor permZ %s" % (self.permeabilityZ[cellId],self.permeabilityZ[neighborId]))
+            print("avgPermY %s and avgPermZ %s" % (permAverageY, permAverageZ))
             print ("radian %s" % radian)
-            permYPrime = stats.hmean([math.cos(radian)*self.permeabilityY[cellId], math.cos(radian)*self.permeabilityY[neighborId]])
-            permZPrime = stats.hmean([math.cos(radian)*self.permeabilityZ[cellId], math.cos(radian)*self.permeabilityZ[neighborId]])
+            permYPrime = math.cos(radian)*permAverageY
+            permZPrime = math.sin(radian)*permAverageZ
+            #permYPrime = stats.hmean([math.cos(radian)*self.permeabilityY[cellId], math.cos(radian)*self.permeabilityY[neighborId]])
+            #permZPrime = stats.hmean([math.sin(radian)*self.permeabilityZ[cellId], math.sin(radian)*self.permeabilityZ[neighborId]])
             print("yP %s zP %s" % (permYPrime, permZPrime))
             return math.sqrt(permYPrime**2 + permZPrime**2)
-        print("x %s y %s z %s" % (deltaX, deltaY, deltaZ))
+        #print("x %s y %s z %s" % (deltaX, deltaY, deltaZ))
         return 0
 
 
@@ -270,7 +285,7 @@ class CSCalculator():
         gamma = numpy.zeros(self.particles)
         gravity = numpy.zeros((self.particles, self.particles))
         rightHandSide = numpy.zeros(self.particles)
-        rightHandSideGravity = numpy.zeros((self.particles, self.particles))
+        #rightHandSideGravity = numpy.zeros((self.particles, self.particles))
         coefficient = numpy.zeros((self.particles, self.particles))
 
 
@@ -281,7 +296,7 @@ class CSCalculator():
 
         #productionRate[particles - 1] = -150.0
         #productionRate[particles - 2] = -200.0
-        productionRate[self.particles - 1] = -100.0
+        #productionRate[self.particles - 1] = -100.0
 
         for timeStep in range(0, numberOfTimeSteps):
             for cell in aContainer:
@@ -293,7 +308,7 @@ class CSCalculator():
                     # print("neighbor %s and face_area = %s" % (neighbor, cell.face_areas()[neighborCounter]))
                     if neighbor >= 0:
                         length = self.distance(aContainer[cell.id].pos, aContainer[neighbor].pos)
-                        self.permeability = self.getPermeability(aContainer[cell.id].pos, aContainer[neighbor].pos, cell.id, neighbor)
+                        self.permeability = self.getPermeability(aContainer, cell.id, neighbor)
                         print (self.permeability)
                         coefficient[cell.id][neighbor] = (betaConstant * cell.face_areas()[neighborCounter]
                                                           * self.permeability
@@ -325,6 +340,7 @@ class CSCalculator():
                 gravity[cell.id][cell.id] = -totalGravity
 
                 totalRightHandSideGravity += gravity[cell.id][cell.id]*aContainer[cell.id].pos[2]
+                print("total RHS gravity %s" % totalRightHandSideGravity)
                 rightHandSide[cell.id] = -(productionRate[cell.id]
                                            + (gamma[cell.id] / deltaTime) * self.pressure[cell.id]
                                            - totalRightHandSideGravity)
@@ -347,6 +363,9 @@ class CSCalculator():
             myPlotter.gnuplot(aContainer)
 
             myPlotter.graphr(aContainer, timeStep)
+
+            myPlotter.pressureAtParticle(4, timeStep, self.pressure)
+
 
             pass
 

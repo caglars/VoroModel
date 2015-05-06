@@ -25,6 +25,8 @@ class CSController:
 
         calculator.readData()
 
+        calculator.initialize(cont)
+
         #calculator.simRunIncompressible(cont, self.particles)
 
         calculator.simRunSlightlyCompressible(cont, self.particles)

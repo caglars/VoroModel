@@ -8,24 +8,41 @@ from scipy import stats
 
 import CSSolution
 import CSPlot
+import CSProperties
 
 class CSCalculator():
     def __init__(self):
         self.particles = 25
-        self.x_min = -1
-        self.x_max = 6001
-        self.y_min = -1
+        self.x_min = 0
+        self.x_max = 6000
+        self.y_min = 0
         self.y_max = 6001
-        self.z_min = -1
-        self.z_max = 61
+        self.z_min = 0
+        self.z_max = 60
         self.boxLimits = [[self.x_min, self.y_min, self.z_min],
                           [self.x_max, self.y_max, self.z_max]]
+        #self.pressure = []
         self.pressure = [6000 for x in range(self.particles)]
-        self.permeabilityX = [0.01 for x in range(self.particles)]
-        self.permeabilityY = [0.01 for x in range(self.particles)]
-        self.permeabilityZ = [0.01 for x in range(self.particles)]
-        self.porosity = [0.18 for x in range(self.particles)]
+        #self.permeabilityX = [0.01 for x in range(self.particles)]
+        #self.permeabilityY = [0.01 for x in range(self.particles)]
+        #self.permeabilityZ = [0.01 for x in range(self.particles)]
+        #self.porosity = [0.18 for x in range(self.particles)]
+        self.referencePressure = 3031.
+        self.referenceDepth = 7000. # the top most depth
         pass
+
+    def initialize(self, aContainer):
+        myProperties = CSProperties.CSFluidProperties()
+        gammaFluid = myProperties.findGammaFluid()
+        # TODO These properties should be read from an input file
+        # TODO the calculation of the initial pressure should be iterative
+        refDepth = myProperties.referenceDepth
+        refPressure = myProperties.referencePressure
+        for cell in aContainer:
+            depthOfCell = self.referenceDepth + aContainer[cell.id].pos[2]
+            self.pressure[cell.id] = refPressure + gammaFluid*(depthOfCell - refDepth)
+            pass
+        print(self.pressure)
 
     def rnd(self, myBoxLimits):
         ''' 1 is added and subtracted to prevent an error caused by random chooses exactly the limit values '''
@@ -40,7 +57,7 @@ class CSCalculator():
         self.permeabilityX = self.readDataFor('permeabilityX.dat')
         self.permeabilityY = self.readDataFor('permeabilityY.dat')
         self.permeabilityZ = self.readDataFor('permeabilityZ.dat')
-        self.pressure = self.readDataFor('initialPressure.dat')
+        #self.pressure = self.readDataFor('initialPressure.dat')
         self.porosity = self.readDataFor('porosity.dat')
 
 
@@ -132,8 +149,7 @@ class CSCalculator():
 
 
         cntr = tess.Container(cellList, limits=[(self.x_min, self.y_min, self.z_min),
-                                                (self.x_max, self.y_max, self.z_max)],
-                              periodic=False)
+                                                (self.x_max, self.y_max, self.z_max)], periodic=False)
 
         return cntr
 
@@ -157,57 +173,57 @@ class CSCalculator():
             if deltaY == 0:
                 if deltaZ == 0:
                     #cell and neighbor same (not likely to occur this)
-                    print("cell and neighbor are same!!!")
+                    #print("cell and neighbor are same!!!")
                     return 0
                 # z only
-                print ("deltaX and deltaY = 0")
+                #print ("deltaX and deltaY = 0")
                 permAverageZ = (cellVolume*self.permeabilityZ[cellId]+neighborVolume*self.permeabilityZ[neighborId])/(cellVolume+neighborVolume)
                 return permAverageZ
             if deltaZ == 0:
                 # y only
-                print ("deltaX and deltaZ = 0")
+                #print ("deltaX and deltaZ = 0")
                 permAverageY = (cellVolume*self.permeabilityY[cellId]+neighborVolume*self.permeabilityY[neighborId])/(cellVolume+neighborVolume)
                 return permAverageY
             # y and z
             radian = math.atan(deltaZ/deltaY)
             permAverageY = (cellVolume*self.permeabilityY[cellId]+neighborVolume*self.permeabilityY[neighborId])/(cellVolume+neighborVolume)
             permAverageZ = (cellVolume*self.permeabilityZ[cellId]+neighborVolume*self.permeabilityZ[neighborId])/(cellVolume+neighborVolume)
-            print("deltaX = 0")
-            print("cell %s and neigh %s" % (cellId, neighborId))
-            print("cell volume %s and neighbor volume %s" % (cellVolume, neighborVolume))
-            print("cell permY %s and neighbor permY %s" % (self.permeabilityY[cellId],self.permeabilityY[neighborId]))
-            print("cell permZ %s and neighbor permZ %s" % (self.permeabilityZ[cellId],self.permeabilityZ[neighborId]))
-            print("avgPermY %s and avgPermZ %s" % (permAverageY, permAverageZ))
-            print ("radian %s" % radian)
+            #print("deltaX = 0")
+            #print("cell %s and neigh %s" % (cellId, neighborId))
+            #print("cell volume %s and neighbor volume %s" % (cellVolume, neighborVolume))
+            #print("cell permY %s and neighbor permY %s" % (self.permeabilityY[cellId],self.permeabilityY[neighborId]))
+            #print("cell permZ %s and neighbor permZ %s" % (self.permeabilityZ[cellId],self.permeabilityZ[neighborId]))
+            #print("avgPermY %s and avgPermZ %s" % (permAverageY, permAverageZ))
+            #print ("radian %s" % radian)
             permYPrime = math.cos(radian)*permAverageY
             permZPrime = math.sin(radian)*permAverageZ
             #permYPrime = stats.hmean([math.cos(radian)*self.permeabilityY[cellId], math.cos(radian)*self.permeabilityY[neighborId]])
             #permZPrime = stats.hmean([math.sin(radian)*self.permeabilityZ[cellId], math.sin(radian)*self.permeabilityZ[neighborId]])
-            print("yP %s zP %s" % (permYPrime, permZPrime))
+            #print("yP %s zP %s" % (permYPrime, permZPrime))
             return math.sqrt(permYPrime**2 + permZPrime**2)
 
         elif deltaY == 0:
             if deltaZ == 0:
                 # x only
-                print ("deltaY and deltaZ = 0")
+                #print ("deltaY and deltaZ = 0")
                 permAverageX = (cellVolume*self.permeabilityX[cellId]+neighborVolume*self.permeabilityX[neighborId])/(cellVolume+neighborVolume)
                 return permAverageX
             # x and z
             radian = math.atan(deltaZ/deltaX)
             permAverageX = (cellVolume*self.permeabilityX[cellId]+neighborVolume*self.permeabilityX[neighborId])/(cellVolume+neighborVolume)
             permAverageZ = (cellVolume*self.permeabilityZ[cellId]+neighborVolume*self.permeabilityZ[neighborId])/(cellVolume+neighborVolume)
-            print("deltaY = 0")
-            print("cell %s and neigh %s" % (cellId, neighborId))
-            print("cell volume %s and neighbor volume %s" % (cellVolume, neighborVolume))
-            print("cell permX %s and neighbor permX %s" % (self.permeabilityX[cellId],self.permeabilityX[neighborId]))
-            print("cell permZ %s and neighbor permZ %s" % (self.permeabilityZ[cellId],self.permeabilityZ[neighborId]))
-            print("avgPermX %s and avgPermZ %s" % (permAverageX, permAverageZ))
-            print ("radian %s" % radian)
+            #print("deltaY = 0")
+            #print("cell %s and neigh %s" % (cellId, neighborId))
+            #print("cell volume %s and neighbor volume %s" % (cellVolume, neighborVolume))
+            #print("cell permX %s and neighbor permX %s" % (self.permeabilityX[cellId],self.permeabilityX[neighborId]))
+            #print("cell permZ %s and neighbor permZ %s" % (self.permeabilityZ[cellId],self.permeabilityZ[neighborId]))
+            #print("avgPermX %s and avgPermZ %s" % (permAverageX, permAverageZ))
+            #print ("radian %s" % radian)
             permXPrime = math.cos(radian)*permAverageX
             permZPrime = math.sin(radian)*permAverageZ
             #permYPrime = stats.hmean([math.cos(radian)*self.permeabilityY[cellId], math.cos(radian)*self.permeabilityY[neighborId]])
             #permZPrime = stats.hmean([math.sin(radian)*self.permeabilityZ[cellId], math.sin(radian)*self.permeabilityZ[neighborId]])
-            print("xP %s zP %s" % (permXPrime, permZPrime))
+            #print("xP %s zP %s" % (permXPrime, permZPrime))
             return math.sqrt(permXPrime**2 + permZPrime**2)
 
         elif deltaZ == 0:
@@ -215,18 +231,18 @@ class CSCalculator():
             radian = math.atan(deltaY/deltaX)
             permAverageX = (cellVolume*self.permeabilityX[cellId]+neighborVolume*self.permeabilityX[neighborId])/(cellVolume+neighborVolume)
             permAverageY = (cellVolume*self.permeabilityY[cellId]+neighborVolume*self.permeabilityY[neighborId])/(cellVolume+neighborVolume)
-            print("deltaZ = 0")
-            print("cell %s and neigh %s" % (cellId, neighborId))
-            print("cell volume %s and neighbor volume %s" % (cellVolume, neighborVolume))
-            print("cell permX %s and neighbor permX %s" % (self.permeabilityX[cellId],self.permeabilityX[neighborId]))
-            print("cell permY %s and neighbor permY %s" % (self.permeabilityY[cellId],self.permeabilityY[neighborId]))
-            print("avgPermX %s and avgPermY %s" % (permAverageX, permAverageY))
-            print ("radian %s" % radian)
+            #print("deltaZ = 0")
+            #print("cell %s and neigh %s" % (cellId, neighborId))
+            #print("cell volume %s and neighbor volume %s" % (cellVolume, neighborVolume))
+            #print("cell permX %s and neighbor permX %s" % (self.permeabilityX[cellId],self.permeabilityX[neighborId]))
+            #print("cell permY %s and neighbor permY %s" % (self.permeabilityY[cellId],self.permeabilityY[neighborId]))
+            #print("avgPermX %s and avgPermY %s" % (permAverageX, permAverageY))
+            #print ("radian %s" % radian)
             permXPrime = math.cos(radian)*permAverageX
             permYPrime = math.sin(radian)*permAverageY
             #permYPrime = stats.hmean([math.cos(radian)*self.permeabilityY[cellId], math.cos(radian)*self.permeabilityY[neighborId]])
             #permZPrime = stats.hmean([math.sin(radian)*self.permeabilityZ[cellId], math.sin(radian)*self.permeabilityZ[neighborId]])
-            print("xP %s yP %s" % (permXPrime, permYPrime))
+            #print("xP %s yP %s" % (permXPrime, permYPrime))
             return math.sqrt(permXPrime**2 + permYPrime**2)
         else:
             #deltaX, deltaY and deltaZ are not zero or all of them are zero. All zero should not come to this function
@@ -236,34 +252,33 @@ class CSCalculator():
             permAverageX = (cellVolume*self.permeabilityX[cellId]+neighborVolume*self.permeabilityX[neighborId])/(cellVolume+neighborVolume)
             permAverageY = (cellVolume*self.permeabilityY[cellId]+neighborVolume*self.permeabilityY[neighborId])/(cellVolume+neighborVolume)
             permAverageZ = (cellVolume*self.permeabilityZ[cellId]+neighborVolume*self.permeabilityZ[neighborId])/(cellVolume+neighborVolume)
-            print("Nothing is zero")
-            print("cell %s and neigh %s" % (cellId, neighborId))
-            print("cell volume %s and neighbor volume %s" % (cellVolume, neighborVolume))
-            print("cell permX %s and neighbor permX %s" % (self.permeabilityX[cellId],self.permeabilityX[neighborId]))
-            print("cell permY %s and neighbor permY %s" % (self.permeabilityY[cellId],self.permeabilityY[neighborId]))
-            print("avgPermX %s and avgPermY %s" % (permAverageX, permAverageY))
-            print("deltaX %s deltaY %s delta Z %s" % (deltaX, deltaY, deltaZ))
-            print ("radianXY %s" % radianXY)
+            #print("Nothing is zero")
+            #print("cell %s and neigh %s" % (cellId, neighborId))
+            #print("cell volume %s and neighbor volume %s" % (cellVolume, neighborVolume))
+            #print("cell permX %s and neighbor permX %s" % (self.permeabilityX[cellId],self.permeabilityX[neighborId]))
+            #print("cell permY %s and neighbor permY %s" % (self.permeabilityY[cellId],self.permeabilityY[neighborId]))
+            #print("avgPermX %s and avgPermY %s" % (permAverageX, permAverageY))
+            #print("deltaX %s deltaY %s delta Z %s" % (deltaX, deltaY, deltaZ))
+            #print ("radianXY %s" % radianXY)
             permXPrime = math.cos(radianXY)*permAverageX
             permYPrime = math.sin(radianXY)*permAverageY
             #permYPrime = stats.hmean([math.cos(radian)*self.permeabilityY[cellId], math.cos(radian)*self.permeabilityY[neighborId]])
             #permZPrime = stats.hmean([math.sin(radian)*self.permeabilityZ[cellId], math.sin(radian)*self.permeabilityZ[neighborId]])
-            print("xP %s yP %s" % (permXPrime, permYPrime))
+            #print("xP %s yP %s" % (permXPrime, permYPrime))
             permXY = math.sqrt(permXPrime**2 + permYPrime**2)
 
             lengthXY = math.sqrt(deltaX**2 + deltaY**2)
             radian = math.atan(deltaZ/lengthXY)
             permZPrime = math.sin(radian)*permAverageZ
             permXYPrime = math.cos(radian)*permXY
-            print("cell permZ %s and neighbor permZ %s" % (self.permeabilityZ[cellId],self.permeabilityZ[neighborId]))
-            print("permXY %s" % permXY)
-            print("radian %s" % radian)
-            print("xyP %s zP %s" % (permXYPrime, permZPrime))
+            #print("cell permZ %s and neighbor permZ %s" % (self.permeabilityZ[cellId],self.permeabilityZ[neighborId]))
+            #print("permXY %s" % permXY)
+            #print("radian %s" % radian)
+            #print("xyP %s zP %s" % (permXYPrime, permZPrime))
             return math.sqrt(permZPrime**2 + permXYPrime**2)
 
 
         #print("x %s y %s z %s" % (deltaX, deltaY, deltaZ))
-        return 0
 
     #TODO simRunIncompressible should be updated
     def simRunIncompressible(self, aContainer, numberOfParticles):
@@ -349,21 +364,22 @@ class CSCalculator():
         self.particles = numberOfParticles
 
         mySolver = CSSolution.CSSolver()
+        myProperties = CSProperties.CSFluidProperties()
 
         viscosity = 10
         formationVolumeFactor = 1
         liquidCompressibility = 3.5E-6
-        referansFormationVolumeFactor = 1
-        fluidDensity = 62.4
-        gravityAcceleration = 32.17
+        referenceFormationVolumeFactor = 1
+        #fluidDensity = 62.4
+        #gravityAcceleration = 32.17
 
         alphaConstant = 5.615
         betaConstant = 1.127
-        gammaConstant = 0.21584e-3
+        #gammaConstant = 0.21584e-3
 
         deltaTime = 15
-        length = 0
-        totalCoefficient = 0
+        #length = 0
+        #totalCoefficient = 0
 
         numberOfTimeSteps = 100
 
@@ -379,10 +395,9 @@ class CSCalculator():
         coefficient = numpy.zeros((self.particles, self.particles))
 
 
-        # The density of the fluid should change and so this parameter
-        # TODO I need to calculate this value as pressure and density changes
-        gammaFluid = gammaConstant*fluidDensity*gravityAcceleration
-        print (gammaFluid)
+
+        gammaFluid = myProperties.findGammaFluid()
+        #print (gammaFluid)
 
         #productionRate[particles - 1] = -150.0
         #productionRate[particles - 2] = -200.0
@@ -399,7 +414,7 @@ class CSCalculator():
                     if neighbor >= 0:
                         length = self.distance(aContainer[cell.id].pos, aContainer[neighbor].pos)
                         self.permeability = self.getPermeability(aContainer, cell.id, neighbor)
-                        print (self.permeability)
+                        #print (self.permeability)
                         coefficient[cell.id][neighbor] = (betaConstant * cell.face_areas()[neighborCounter]
                                                           * self.permeability
                                                           / (viscosity * formationVolumeFactor * length))
@@ -421,7 +436,7 @@ class CSCalculator():
                 # this version assumes constant porosity
 
                 gamma[cell.id] = ((cell.volume() * self.porosity[cell.id] * liquidCompressibility)
-                                  / (alphaConstant * referansFormationVolumeFactor))
+                                  / (alphaConstant * referenceFormationVolumeFactor))
 
 
                 coefficient[cell.id][cell.id] = -totalCoefficient - (gamma[cell.id] / deltaTime)
@@ -430,7 +445,7 @@ class CSCalculator():
                 gravity[cell.id][cell.id] = -totalGravity
 
                 totalRightHandSideGravity += gravity[cell.id][cell.id]*aContainer[cell.id].pos[2]
-                print("total RHS gravity %s" % totalRightHandSideGravity)
+                #print("total RHS gravity %s" % totalRightHandSideGravity)
                 rightHandSide[cell.id] = -(productionRate[cell.id]
                                            + (gamma[cell.id] / deltaTime) * self.pressure[cell.id]
                                            - totalRightHandSideGravity)

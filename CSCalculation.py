@@ -36,15 +36,27 @@ class CSCalculator():
         referencePressure = self.reader.readSingleFloatValue("REFPRES")
         self.pressure = [referencePressure for x in range(self.particles)]
         myProperties = CSProperties.CSFluidProperties()
-        # TODO These properties should be read from an input file
         # TODO the calculation of the initial pressure should be iterative
         refDepth = myProperties.referenceDepth
         refPressure = myProperties.referencePressure
+
+        newGammaFluid = 0.
         for cell in aContainer:
+            print("cell %s" % cell.id)
             gammaFluid = myProperties.findGammaFluid(self.pressure[cell.id])
-            depthOfCell = refDepth + aContainer[cell.id].pos[2]
-            self.pressure[cell.id] = refPressure + gammaFluid*(depthOfCell - refDepth)
+            while True:
+                depthOfCell = refDepth + aContainer[cell.id].pos[2]
+                self.pressure[cell.id] = refPressure + gammaFluid*(depthOfCell - refDepth)
+                newGammaFluid = myProperties.findGammaFluid(self.pressure[cell.id])
+                print("gamma %s and newGamma %s" % (gammaFluid, newGammaFluid))
+                if abs(newGammaFluid - gammaFluid) > 0.001:
+                    gammaFluid = newGammaFluid
+                else:
+                    break
+
             pass
+
+
         print(self.pressure)
 
     def rnd(self, myBoxLimits):

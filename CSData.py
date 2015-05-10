@@ -14,7 +14,7 @@ class CSDataReader():
             for num, line in enumerate(myFile, 0):
                 # I have added split() to find only the whole word
                 if lookup in line.split():
-                    print("Found at line %s" % num)
+                    #print("Found at line %s" % num)
                     return num
         return 0
 
@@ -26,20 +26,11 @@ class CSDataReader():
         #lineCounter = start
         for lineCounter in range(start+2, end+1):
             line = linecache.getline(self.myDataFile, lineCounter)
-            print("line %s start %s end %s lineCounter %s" % (line, start, end, lineCounter))
+            #print("line %s start %s end %s lineCounter %s" % (line, start, end, lineCounter))
             lineParticles = line.split()
             particleList.append([lineParticles[0], lineParticles[1], lineParticles[2]])
             linecache.clearcache()
-        '''
-        for line in myFile:
-            #print("line %s lineCounter %s start %s end %s" % (line, lineCounter, start, end))
-            if lineCounter > start and lineCounter < end:
-                #print("line: %s " % line)
-                lineParticles = line.split()
-                particleList.append([lineParticles[0], lineParticles[1], lineParticles[2]])
-            lineCounter += 1
-        myFile.close()
-        '''
+
         self.particles = len(particleList)
         return particleList
 
@@ -51,9 +42,9 @@ class CSDataReader():
 
         for lineCounter in range(start+2, end+1):
             line = linecache.getline(self.myDataFile, lineCounter)
-            print("line %s start %s end %s lineCounter %s" % (line, start, end, lineCounter))
+            #print("line %s start %s end %s lineCounter %s" % (line, start, end, lineCounter))
             words = line.split()
-            print("words %s" % words)
+            #print("words %s" % words)
 
             for text in words:
                 if "*" in text:

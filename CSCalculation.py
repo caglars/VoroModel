@@ -365,8 +365,9 @@ class CSCalculator():
         y = 0
         z = 0
 
+        print(self.reader.readWellRates())
 
-        productionRate = numpy.zeros(self.particles)
+        #productionRate = numpy.zeros(self.particles)
         gamma = numpy.zeros(self.particles)
         gravity = numpy.zeros((self.particles, self.particles))
         rightHandSide = numpy.zeros(self.particles)
@@ -379,7 +380,9 @@ class CSCalculator():
 
         #productionRate[particles - 1] = -150.0
         #productionRate[particles - 2] = -200.0
-        productionRate[self.particles - 1] = -100.0
+        #productionRate[self.particles - 1] = -100.0
+
+        productionRate = self.reader.readWellRates()
 
         for timeStep in range(0, numberOfTimeSteps):
             for cell in aContainer:

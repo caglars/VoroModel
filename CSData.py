@@ -1,6 +1,7 @@
 __author__ = 'caglars'
 
 import linecache
+import numpy
 
 class CSDataReader():
     def __init__(self):
@@ -79,3 +80,19 @@ class CSDataReader():
         lineCounter = start+2
         line = linecache.getline(self.myDataFile, lineCounter)
         return int(line)
+
+    def readWellRates(self):
+        print("readWellRates")
+        start = self.readDataFor("WELLS")
+        end = self.readDataFor("ENDWELLS")
+        print ("start %s end %s" % (start, end))
+        wellRates = numpy.zeros(self.particles)
+        for lineCounter in range(start+2, end+1):
+            print("here")
+            line = linecache.getline(self.myDataFile, lineCounter)
+            print("line %s start %s end %s lineCounter %s" % (line, start, end, lineCounter))
+            propertyList = line.split()
+            if propertyList[1] == "FLOWRATE":
+                wellRates[int(propertyList[0])] = propertyList[2]
+            linecache.clearcache()
+        return wellRates

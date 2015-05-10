@@ -33,14 +33,15 @@ class CSCalculator():
         pass
 
     def initialize(self, aContainer):
+        referencePressure = self.reader.readSingleFloatValue("REFPRES")
+        self.pressure = [referencePressure for x in range(self.particles)]
         myProperties = CSProperties.CSFluidProperties()
-        gammaFluid = myProperties.findGammaFluid()
         # TODO These properties should be read from an input file
         # TODO the calculation of the initial pressure should be iterative
         refDepth = myProperties.referenceDepth
         refPressure = myProperties.referencePressure
-        self.pressure = [0 for x in range(self.particles)]
         for cell in aContainer:
+            gammaFluid = myProperties.findGammaFluid(self.pressure[cell.id])
             depthOfCell = refDepth + aContainer[cell.id].pos[2]
             self.pressure[cell.id] = refPressure + gammaFluid*(depthOfCell - refDepth)
             pass
@@ -382,7 +383,8 @@ class CSCalculator():
         rightHandSide = numpy.zeros(self.particles)
         coefficient = numpy.zeros((self.particles, self.particles))
 
-        gammaFluid = myProperties.findGammaFluid()
+        referencePressure = self.reader.readSingleFloatValue("REFPRES")
+        gammaFluid = myProperties.findGammaFluid(referencePressure)
         #print (gammaFluid)
 
         #productionRate[particles - 1] = -150.0

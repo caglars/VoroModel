@@ -9,6 +9,7 @@ from scipy import stats
 import CSSolution
 import CSPlot
 import CSProperties
+import CSData
 
 class CSCalculator():
     def __init__(self):
@@ -54,52 +55,22 @@ class CSCalculator():
 
     def readData(self):
 
-        self.permeabilityX = self.readDataFor('permeabilityX.dat')
-        self.permeabilityY = self.readDataFor('permeabilityY.dat')
-        self.permeabilityZ = self.readDataFor('permeabilityZ.dat')
-        #self.pressure = self.readDataFor('initialPressure.dat')
-        self.porosity = self.readDataFor('porosity.dat')
+        self.permeabilityX = self.reader.readValues("PERMX")
+        self.permeabilityY = self.reader.readValues("PERMY")
+        self.permeabilityZ = self.reader.readValues("PERMZ")
+        self.porosity = self.reader.readValues("PORO")
 
 
+    def buildModel(self):
 
-    def readDataFor(self, fileName):
-        self.temp = []
-        self.valueList = []
+        self.reader = CSData.CSDataReader()
 
-        with open(fileName, 'r') as f:
-            data = f.read()
 
-        f.close()
+        cellList =self.reader.readParticles()
+        self.particles = len(cellList)
 
-        words = data.split()
-
-        #print(words)
-
-        for text in words:
-            self.temp.append(text.split('*'))
-
-        #print(self.temp)
-
-        for count, value in enumerate(self.temp):
-            #print(count)
-            #print(value)
-            if len(value) == 1:
-                #print(float(value[0]))
-                self.valueList.append(float(value[0]))
-            else:
-                #print('no %s' % float(value[1]))
-                for count in range(0, int(value[0])):
-                    self.valueList.append(float(value[1]))
-
-        #print(self.valueList)
-
-        self.temp.clear()
-
-        return self.valueList
-
-    def calculate(self, numberOfParticles):
-
-        self.particles = numberOfParticles
+        '''
+        #self.particles = numberOfParticles
         # i = None
         # x, y, z, r = None
         cellList = []
@@ -131,7 +102,7 @@ class CSCalculator():
         cellList.append([5000, 5000, 10])
         cellList.append([3000, 3000, 30])
 
-        '''
+
 
         for x in range(0, self.particles-1):
             cellList.append(self.rnd(self.boxLimits))
@@ -360,16 +331,23 @@ class CSCalculator():
             pass
 
 
-    def simRunSlightlyCompressible(self, aContainer, numberOfParticles):
-        self.particles = numberOfParticles
+    def simRunSlightlyCompressible(self, aContainer):
+        #self.particles = numberOfParticles
 
         mySolver = CSSolution.CSSolver()
         myProperties = CSProperties.CSFluidProperties()
 
-        viscosity = 10
-        formationVolumeFactor = 1
-        liquidCompressibility = 3.5E-6
-        referenceFormationVolumeFactor = 1
+        viscosity = self.reader.readSingleFloatValue("VISCOSITY")
+        formationVolumeFactor = self.reader.readSingleFloatValue("FORMATIONVOLUMEFACTOR")
+        liquidCompressibility = self.reader.readSingleFloatValue("LIQUIDCOMPRESSIBILITY")
+        referenceFormationVolumeFactor = self.reader.readSingleFloatValue("REFFVF")
+        deltaTime = self.reader.readSingleFloatValue("DELTATIME")
+        numberOfTimeSteps = self.reader.readSingleIntValue("TIMESTEPS")
+
+        #viscosity = 10
+        #formationVolumeFactor = 1
+        #liquidCompressibility = 3.5E-6
+        #referenceFormationVolumeFactor = 1
         #fluidDensity = 62.4
         #gravityAcceleration = 32.17
 
@@ -377,11 +355,11 @@ class CSCalculator():
         betaConstant = 1.127
         #gammaConstant = 0.21584e-3
 
-        deltaTime = 15
+        #deltaTime = 15
         #length = 0
         #totalCoefficient = 0
 
-        numberOfTimeSteps = 100
+        #numberOfTimeSteps = 1
 
         x = 0
         y = 0

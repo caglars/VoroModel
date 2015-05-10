@@ -21,7 +21,7 @@ class CSController:
 
         calculator = CSCalculation.CSCalculator()
 
-        cont = calculator.calculate(self.particles)
+        cont = calculator.buildModel()
 
         calculator.readData()
 
@@ -29,7 +29,7 @@ class CSController:
 
         #calculator.simRunIncompressible(cont, self.particles)
 
-        calculator.simRunSlightlyCompressible(cont, self.particles)
+        calculator.simRunSlightlyCompressible(cont)
 
         t2 = time.time()
         print('it took %s seconds' % (t2 - t1))

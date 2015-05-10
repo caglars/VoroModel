@@ -13,23 +13,23 @@ import CSData
 
 class CSCalculator():
     def __init__(self):
-        self.particles = 25
-        self.x_min = 0
-        self.x_max = 6000
-        self.y_min = 0
-        self.y_max = 6001
-        self.z_min = 0
-        self.z_max = 60
-        self.boxLimits = [[self.x_min, self.y_min, self.z_min],
-                          [self.x_max, self.y_max, self.z_max]]
+        #self.particles = 25
+        #self.x_min = 0
+        #self.x_max = 6000
+        #self.y_min = 0
+        #self.y_max = 6001
+        #self.z_min = 0
+        #self.z_max = 60
+        #self.boxLimits = [[self.x_min, self.y_min, self.z_min],
+        #                  [self.x_max, self.y_max, self.z_max]]
         #self.pressure = []
-        self.pressure = [6000 for x in range(self.particles)]
+        #self.pressure = [6000 for x in range(self.particles)]
         #self.permeabilityX = [0.01 for x in range(self.particles)]
         #self.permeabilityY = [0.01 for x in range(self.particles)]
         #self.permeabilityZ = [0.01 for x in range(self.particles)]
         #self.porosity = [0.18 for x in range(self.particles)]
-        self.referencePressure = 3031.
-        self.referenceDepth = 7000. # the top most depth
+        #self.referencePressure = 3031.
+        #self.referenceDepth = 7000. # the top most depth
         pass
 
     def initialize(self, aContainer):
@@ -39,8 +39,9 @@ class CSCalculator():
         # TODO the calculation of the initial pressure should be iterative
         refDepth = myProperties.referenceDepth
         refPressure = myProperties.referencePressure
+        self.pressure = [0 for x in range(self.particles)]
         for cell in aContainer:
-            depthOfCell = self.referenceDepth + aContainer[cell.id].pos[2]
+            depthOfCell = refDepth + aContainer[cell.id].pos[2]
             self.pressure[cell.id] = refPressure + gammaFluid*(depthOfCell - refDepth)
             pass
         print(self.pressure)
@@ -68,6 +69,14 @@ class CSCalculator():
 
         cellList =self.reader.readParticles()
         self.particles = len(cellList)
+
+        containerLimits = self.reader.readValues("LIMITS")
+        self.x_min = 0
+        self.x_max = containerLimits[0]
+        self.y_min = 0
+        self.y_max = containerLimits[1]
+        self.z_min = 0
+        self.z_max = containerLimits[2]
 
         '''
         #self.particles = numberOfParticles
@@ -372,8 +381,6 @@ class CSCalculator():
         gravity = numpy.zeros((self.particles, self.particles))
         rightHandSide = numpy.zeros(self.particles)
         coefficient = numpy.zeros((self.particles, self.particles))
-
-
 
         gammaFluid = myProperties.findGammaFluid()
         #print (gammaFluid)

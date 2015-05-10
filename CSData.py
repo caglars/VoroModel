@@ -72,14 +72,16 @@ class CSDataReader():
         #end = self.readDataFor("END"+propertyString)
         lineCounter = start+2
         line = linecache.getline(self.myDataFile, lineCounter)
-        return float(line)
+        value = float(line)
+        return value
 
     def readSingleIntValue(self, propertyString):
         start = self.readDataFor(propertyString)
         #end = self.readDataFor("END"+propertyString)
         lineCounter = start+2
         line = linecache.getline(self.myDataFile, lineCounter)
-        return int(line)
+        value = int(line)
+        return value
 
     def readWellRates(self):
         print("readWellRates")

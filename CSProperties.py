@@ -17,7 +17,7 @@ class CSFluidProperties():
         # TODO the value should change with pressure and temperature
         gammaConstant = 0.21584e-3
         gravityAcceleration = 32.17
-        self.fluidDensity = self.referenceDensity/(1-self.liquidCompressibility*(pressure - self.referencePressure))
+        self.fluidDensity = self.referenceDensity*(1-self.liquidCompressibility*(pressure - self.referencePressure))
         print(self.fluidDensity)
         gammaFluid = gammaConstant*self.fluidDensity*gravityAcceleration
         return gammaFluid

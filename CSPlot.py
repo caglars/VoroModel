@@ -52,6 +52,13 @@ class CSPlotter():
 
         pressureAtParticleFile.close()
 
+    def pressureAtParticleDetail(self, particle, timeStep, iteration, pressure):
+        pressureAtParticleDetailFile = open("pressureAtParticleDetail{}.dat".format(particle), "a")
+
+        pressureAtParticleDetailFile.write("%s %s\n" % (timeStep, pressure[particle]))
+
+        pressureAtParticleDetailFile.close()
+
     def permeabilityGraphr(self, aContainer, permeabilityX, permeabilityY, permeabilityZ):
 
         permXGraphrFile = open("permXGraphr.csv", "w")

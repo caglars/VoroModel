@@ -35,6 +35,7 @@ class CSCalculator():
     def initialize(self, aContainer):
         referencePressure = self.reader.readSingleFloatValue("REFPRES")
         self.pressure = [referencePressure for x in range(self.particles)]
+        self.finalPressure = [referencePressure for x in range(self.particles)]
         myProperties = CSProperties.CSFluidProperties()
         # TODO the calculation of the initial pressure should be iterative
         refDepth = myProperties.referenceDepth
@@ -46,14 +47,18 @@ class CSCalculator():
             gammaFluid = myProperties.findGammaFluid(self.pressure[cell.id])
             while True:
                 depthOfCell = refDepth + aContainer[cell.id].pos[2]
-                self.pressure[cell.id] = refPressure + gammaFluid*(depthOfCell - refDepth)
-                newGammaFluid = myProperties.findGammaFluid(self.pressure[cell.id])
+                self.finalPressure[cell.id] = refPressure + gammaFluid*(depthOfCell - refDepth)
+                newGammaFluid = myProperties.findGammaFluid(self.finalPressure[cell.id])
                 print("gamma %s and newGamma %s" % (gammaFluid, newGammaFluid))
                 if abs(newGammaFluid - gammaFluid) > 0.001:
                     gammaFluid = newGammaFluid
                 else:
                     break
 
+            pass
+
+        for x in range(0, self.particles):
+            self.pressure[x] = self.finalPressure[x]-0.001
             pass
 
 
@@ -273,6 +278,28 @@ class CSCalculator():
 
         #print("x %s y %s z %s" % (deltaX, deltaY, deltaZ))
 
+    def getFormationVolumeFactor(self, aContainer, cellId, neighborId):
+        # explicit treatment of the parameters, pressures are at time step n
+        cellVolume = aContainer[cellId].volume()
+        neighborVolume = aContainer[neighborId].volume()
+        #todo Factor is calculated using bulk volumes, it would be better to use pore volumes
+        factor = cellVolume/(cellVolume+neighborVolume)
+        myProperty = CSProperties.CSFluidProperties()
+        formationVolumeFactor = factor*myProperty.findFormationVolumeFactor(self.finalPressure[cellId]) \
+                                + (1-factor)*myProperty.findFormationVolumeFactor(self.finalPressure[neighborId])
+        return formationVolumeFactor
+
+    def getViscosity(self, aContainer, cellId, neighborId):
+        # explicit treatment of the parameters, pressures are at time step n
+        cellVolume = aContainer[cellId].volume()
+        neighborVolume = aContainer[neighborId].volume()
+        #todo Factor is calculated using bulk volumes, it would be better to use pore volumes
+        factor = cellVolume/(cellVolume+neighborVolume)
+        myProperty = CSProperties.CSFluidProperties()
+        viscosity = factor*myProperty.findViscosity(self.finalPressure[cellId],1) \
+                                + (1-factor)*myProperty.findViscosity(self.finalPressure[neighborId],1)
+        return viscosity
+
     #TODO simRunIncompressible should be updated
     def simRunIncompressible(self, aContainer, numberOfParticles):
         self.particles = numberOfParticles
@@ -358,11 +385,12 @@ class CSCalculator():
 
         mySolver = CSSolution.CSSolver()
         myProperties = CSProperties.CSFluidProperties()
+        myPlotter = CSPlot.CSPlotter(self.particles, self.pressure)
 
-        viscosity = self.reader.readSingleFloatValue("VISCOSITY")
-        formationVolumeFactor = self.reader.readSingleFloatValue("FORMATIONVOLUMEFACTOR")
-        liquidCompressibility = self.reader.readSingleFloatValue("LIQUIDCOMPRESSIBILITY")
-        referenceFormationVolumeFactor = self.reader.readSingleFloatValue("REFFVF")
+        #viscosity = self.reader.readSingleFloatValue("VISCOSITY")
+        #formationVolumeFactor = self.reader.readSingleFloatValue("FORMATIONVOLUMEFACTOR")
+        #liquidCompressibility = self.reader.readSingleFloatValue("LIQUIDCOMPRESSIBILITY")
+        #referenceFormationVolumeFactor = self.reader.readSingleFloatValue("REFFVF")
         deltaTime = self.reader.readSingleFloatValue("DELTATIME")
         numberOfTimeSteps = self.reader.readSingleIntValue("TIMESTEPS")
 
@@ -404,74 +432,87 @@ class CSCalculator():
         #productionRate[self.particles - 1] = -100.0
 
         productionRate = self.reader.readWellRates()
-
+        # todo An error approach is required to end the iterations
         for timeStep in range(0, numberOfTimeSteps):
-            for cell in aContainer:
-                neighborCounter = 0
-                totalCoefficient = 0
-                totalGravity = 0
-                totalRightHandSideGravity = 0
-                for neighbor in cell.neighbors():
-                    # print("neighbor %s and face_area = %s" % (neighbor, cell.face_areas()[neighborCounter]))
-                    if neighbor >= 0:
-                        length = self.distance(aContainer[cell.id].pos, aContainer[neighbor].pos)
-                        self.permeability = self.getPermeability(aContainer, cell.id, neighbor)
-                        #print (self.permeability)
-                        coefficient[cell.id][neighbor] = (betaConstant * cell.face_areas()[neighborCounter]
-                                                          * self.permeability
-                                                          / (viscosity * formationVolumeFactor * length))
+            for iteration in range(0, 5):
+                for cell in aContainer:
+                    neighborCounter = 0
+                    totalCoefficient = 0
+                    totalGravity = 0
+                    totalRightHandSideGravity = 0
+                    for neighbor in cell.neighbors():
+                        # print("neighbor %s and face_area = %s" % (neighbor, cell.face_areas()[neighborCounter]))
+                        if neighbor >= 0:
+                            length = self.distance(aContainer[cell.id].pos, aContainer[neighbor].pos)
+                            self.permeability = self.getPermeability(aContainer, cell.id, neighbor)
+                            #print (self.permeability)
+                            coefficient[cell.id][neighbor] = (betaConstant * cell.face_areas()[neighborCounter]
+                                                              * self.permeability
+                                                              / (self.getViscosity(aContainer, cell.id, neighbor)
+                                                                 * self.getFormationVolumeFactor(aContainer, cell.id, neighbor) * length))
 
-                        # TODO gammaFluid should change for each neighbor according to their pressure and density
-                        gravity[cell.id][neighbor] = gammaFluid * coefficient[cell.id][neighbor]
-                        totalRightHandSideGravity += gravity[cell.id][neighbor]*aContainer[neighbor].pos[2]
-                        totalGravity += gravity[cell.id][neighbor]
-                        totalCoefficient += coefficient[cell.id][neighbor]
-                        # print("i = %s, neighbor = %s, neighborCounter = %s" % (cell.id, neighbor, neighborCounter))
+                            # TODO gammaFluid should change for each neighbor according to their pressure and density
+                            gravity[cell.id][neighbor] = gammaFluid * coefficient[cell.id][neighbor]
+                            totalRightHandSideGravity += gravity[cell.id][neighbor]*aContainer[neighbor].pos[2]
+                            totalGravity += gravity[cell.id][neighbor]
+                            totalCoefficient += coefficient[cell.id][neighbor]
+                            # print("i = %s, neighbor = %s, neighborCounter = %s" % (cell.id, neighbor, neighborCounter))
 
+                            pass
                         pass
+                        neighborCounter = neighborCounter + 1
+
+
+                    # Since the fluid is slightly compressible,
+                    # TODO the gamma value is calculated using equation 8.133 in Ertekin but porosity change should be included
+                    # this version assumes constant porosity
+
+                    gamma[cell.id] = (cell.volume()/alphaConstant) \
+                                     * ((self.porosity[cell.id]/myProperties.findFormationVolumeFactor(self.finalPressure[cell.id]))
+                                        * (myProperties.findFormationVolumeFactor(self.finalPressure[cell.id])
+                                           /myProperties.findFormationVolumeFactor(self.pressure[cell.id])-1)
+                                        /(self.pressure[cell.id]-self.finalPressure[cell.id]))
+
+                    if cell.id==12:
+                        #print("vol: %s FVFold: %s FVFnew: %s pres: %s finPres: %s" % (cell.volume(), myProperties.findFormationVolumeFactor(self.finalPressure[cell.id]), myProperties.findFormationVolumeFactor(self.pressure[cell.id]),self.pressure[cell.id], self.finalPressure[cell.id]))
+                        print("time step: %s iteration: %s pressure: %s" % (timeStep, iteration, self.pressure[cell.id]))
+
+
+                    coefficient[cell.id][cell.id] = -totalCoefficient - (gamma[cell.id] / deltaTime)
+
+                    # TODO The gravity CG value should be checked from the equation
+                    gravity[cell.id][cell.id] = -totalGravity
+
+                    totalRightHandSideGravity += gravity[cell.id][cell.id]*aContainer[cell.id].pos[2]
+                    #print("total RHS gravity %s" % totalRightHandSideGravity)
+                    rightHandSide[cell.id] = -(productionRate[cell.id]
+                                               + (gamma[cell.id] / deltaTime) * self.finalPressure[cell.id]
+                                               - totalRightHandSideGravity)
+
+                    # print("cell id = %s volume = %s" % (cell.id, cell.volume()))
                     pass
-                    neighborCounter = neighborCounter + 1
 
+                # solutionArray = mySolver.simpleSolver(particles, coefficient, rightHandSide, pressure)
+                solutionArray = mySolver.numpySolver(coefficient, rightHandSide)
 
-                # Since the fluid is slightly compressible,
-                # TODO the gamma value should be calculated using equation 8.94 in Page 188
-                # this version assumes constant porosity
+                for x in range(0, self.particles):
+                    self.pressure[x] = solutionArray[x]
+                    pass
 
-                gamma[cell.id] = ((cell.volume() * self.porosity[cell.id] * liquidCompressibility)
-                                  / (alphaConstant * referenceFormationVolumeFactor))
-
-
-                coefficient[cell.id][cell.id] = -totalCoefficient - (gamma[cell.id] / deltaTime)
-
-                # TODO The gravity CG value should be checked from the equation
-                gravity[cell.id][cell.id] = -totalGravity
-
-                totalRightHandSideGravity += gravity[cell.id][cell.id]*aContainer[cell.id].pos[2]
-                #print("total RHS gravity %s" % totalRightHandSideGravity)
-                rightHandSide[cell.id] = -(productionRate[cell.id]
-                                           + (gamma[cell.id] / deltaTime) * self.pressure[cell.id]
-                                           - totalRightHandSideGravity)
-
-                # print("cell id = %s volume = %s" % (cell.id, cell.volume()))
-                pass
-
-            # solutionArray = mySolver.simpleSolver(particles, coefficient, rightHandSide, pressure)
-            solutionArray = mySolver.numpySolver(coefficient, rightHandSide)
-
-            for x in range(0, self.particles):
-                self.pressure[x] = solutionArray[x]
-                pass
+                myPlotter.pressureAtParticleDetail(12, timeStep, iteration, self.pressure)
 
             print("Time step: %s" % timeStep)
             print("pressure is written to pressureOut.csv")
 
-            myPlotter = CSPlot.CSPlotter(self.particles, self.pressure)
+            for x in range(0, self.particles):
+                self.finalPressure[x] = self.pressure[x] - 0.00001
+                pass
 
             myPlotter.gnuplot(aContainer)
 
             myPlotter.graphr(aContainer, timeStep)
 
-            myPlotter.pressureAtParticle(4, timeStep, self.pressure)
+            myPlotter.pressureAtParticle(12, timeStep, self.pressure)
 
             myPlotter.permeabilityGraphr(aContainer, self.permeabilityX, self.permeabilityY, self.permeabilityZ)
 

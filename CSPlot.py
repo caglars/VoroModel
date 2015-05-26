@@ -99,3 +99,10 @@ class CSPlotter():
             pass
 
         permZGraphrFile.close()
+
+    def writeBottomHolePressure(self, particle, timeStep, pressure):
+        bottomHolePressureFile = open("pressureWfAtParticle{}.dat".format(particle), "a")
+
+        bottomHolePressureFile.write("%s %s\n" % (timeStep, pressure))
+
+        bottomHolePressureFile.close()

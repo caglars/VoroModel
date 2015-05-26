@@ -13,6 +13,9 @@ import CSData
 
 class CSCalculator():
     def __init__(self):
+        self.betaConstant = 1.127
+        self.alphaConstant = 5.615
+
         #self.particles = 25
         #self.x_min = 0
         #self.x_max = 6000
@@ -78,6 +81,11 @@ class CSCalculator():
         self.permeabilityY = self.reader.readValues("PERMY")
         self.permeabilityZ = self.reader.readValues("PERMZ")
         self.porosity = self.reader.readValues("PORO")
+        self.wellRadius = self.reader.readWellData(dataType="RW")
+        self.wellSkins = self.reader.readWellData(dataType="SKIN")
+        self.productionRate = self.reader.readWellData(dataType = "FLOWRATE")
+        self.wellThickness = self.reader.readWellData(dataType = "PERFTHICK")
+
 
 
     def buildModel(self):
@@ -300,6 +308,35 @@ class CSCalculator():
                                 + (1-factor)*myProperty.findViscosity(self.finalPressure[neighborId],1)
         return viscosity
 
+    # TODO It would be better to read all the data at the beginning and check for errors instead of reading in separate functions
+    def getBottomHolePressure(self, aContainer, cellId, blockPressure):
+        # Using Eqn 6.32 of Ertekin
+        #self.wellRadius = numpy.zeros(self.particles)
+        #self.wellSkins = numpy.zeros(self.particles)
+        myProperty = CSProperties.CSFluidProperties()
+        viscosity = myProperty.findViscosity(blockPressure, 1)
+        formationVolumeFactor = myProperty.findFormationVolumeFactor(blockPressure)
+        equivalentRadius = math.pow((3*aContainer[cellId].volume()/(4*math.pi)), 1./3.)
+        harmonicPermeability = math.pow((self.permeabilityX[cellId]*self.permeabilityY[cellId]*self.permeabilityZ[cellId]),1./3.)
+        print("viscosity: %s" % viscosity)
+        print("blockPressure: %s" % blockPressure)
+        print("FVF: %s" % formationVolumeFactor)
+        print("req: %s" % equivalentRadius)
+        print("kH: %s" % harmonicPermeability)
+        print("rw: %s" % self.wellRadius[cellId])
+        print("s: %s" % self.wellSkins[cellId])
+        print("pi: %s" % math.pi)
+        print("h: %s" % self.wellThickness[cellId])
+
+        bottomHolePressure = blockPressure + self.productionRate[cellId]*viscosity*formationVolumeFactor\
+                                             *(math.log(equivalentRadius/self.wellRadius[cellId]+self.wellSkins[cellId]-0.5))\
+                                             /(2*math.pi*self.betaConstant*harmonicPermeability*self.wellThickness[cellId])
+        return bottomHolePressure
+
+
+
+
+
     #TODO simRunIncompressible should be updated
     def simRunIncompressible(self, aContainer, numberOfParticles):
         self.particles = numberOfParticles
@@ -401,8 +438,8 @@ class CSCalculator():
         #fluidDensity = 62.4
         #gravityAcceleration = 32.17
 
-        alphaConstant = 5.615
-        betaConstant = 1.127
+        #alphaConstant = 5.615
+        #betaConstant = 1.127
         #gammaConstant = 0.21584e-3
 
         #deltaTime = 15
@@ -415,9 +452,11 @@ class CSCalculator():
         y = 0
         z = 0
 
-        print(self.reader.readWellRates())
+        print(self.reader.readWellData(dataType = "FLOWRATE"))
 
-        #productionRate = numpy.zeros(self.particles)
+        #self.productionRate = numpy.zeros(self.particles)
+
+
         gamma = numpy.zeros(self.particles)
         gravity = numpy.zeros((self.particles, self.particles))
         rightHandSide = numpy.zeros(self.particles)
@@ -431,7 +470,8 @@ class CSCalculator():
         #productionRate[particles - 2] = -200.0
         #productionRate[self.particles - 1] = -100.0
 
-        productionRate = self.reader.readWellRates()
+        #self.productionRate = self.reader.readWellData(dataType = "FLOWRATE")
+
         # todo An error approach is required to end the iterations
         for timeStep in range(0, numberOfTimeSteps):
             for iteration in range(0, 5):
@@ -446,7 +486,7 @@ class CSCalculator():
                             length = self.distance(aContainer[cell.id].pos, aContainer[neighbor].pos)
                             self.permeability = self.getPermeability(aContainer, cell.id, neighbor)
                             #print (self.permeability)
-                            coefficient[cell.id][neighbor] = (betaConstant * cell.face_areas()[neighborCounter]
+                            coefficient[cell.id][neighbor] = (self.betaConstant * cell.face_areas()[neighborCounter]
                                                               * self.permeability
                                                               / (self.getViscosity(aContainer, cell.id, neighbor)
                                                                  * self.getFormationVolumeFactor(aContainer, cell.id, neighbor) * length))
@@ -467,7 +507,7 @@ class CSCalculator():
                     # TODO the gamma value is calculated using equation 8.133 in Ertekin but porosity change should be included
                     # this version assumes constant porosity
 
-                    gamma[cell.id] = (cell.volume()/alphaConstant) \
+                    gamma[cell.id] = (cell.volume()/self.alphaConstant) \
                                      * ((self.porosity[cell.id]/myProperties.findFormationVolumeFactor(self.finalPressure[cell.id]))
                                         * (myProperties.findFormationVolumeFactor(self.finalPressure[cell.id])
                                            /myProperties.findFormationVolumeFactor(self.pressure[cell.id])-1)
@@ -485,7 +525,7 @@ class CSCalculator():
 
                     totalRightHandSideGravity += gravity[cell.id][cell.id]*aContainer[cell.id].pos[2]
                     #print("total RHS gravity %s" % totalRightHandSideGravity)
-                    rightHandSide[cell.id] = -(productionRate[cell.id]
+                    rightHandSide[cell.id] = -(self.productionRate[cell.id]
                                                + (gamma[cell.id] / deltaTime) * self.finalPressure[cell.id]
                                                - totalRightHandSideGravity)
 
@@ -508,11 +548,18 @@ class CSCalculator():
                 self.finalPressure[x] = self.pressure[x] - 0.00001
                 pass
 
+            for x in range(0, self.particles):
+                if self.productionRate[x] != 0:
+                    bottomHolePressure = self.getBottomHolePressure(aContainer, x, self.finalPressure[x])
+                    myPlotter.writeBottomHolePressure(x,timeStep,bottomHolePressure)
+
+
             myPlotter.gnuplot(aContainer)
 
             myPlotter.graphr(aContainer, timeStep)
 
-            myPlotter.pressureAtParticle(12, timeStep, self.pressure)
+            myPlotter.pressureAtParticle(0, timeStep, self.pressure)
+            myPlotter.pressureAtParticle(24, timeStep, self.pressure)
 
             myPlotter.permeabilityGraphr(aContainer, self.permeabilityX, self.permeabilityY, self.permeabilityZ)
 

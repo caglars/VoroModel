@@ -2,3 +2,8 @@
 *.csv
 *.xlsx
 *.tex
+*.ipynb
+__pycache__/
+*.gnu
+pressureAt*.dat
+information/

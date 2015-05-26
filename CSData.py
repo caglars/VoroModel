@@ -74,18 +74,28 @@ class CSDataReader():
         value = int(line)
         return value
 
-    def readWellRates(self):
+    def readWellData(self, dataType):
         print("readWellRates")
         start = self.readDataFor("WELLS")
         end = self.readDataFor("ENDWELLS")
         print ("start %s end %s" % (start, end))
-        wellRates = numpy.zeros(self.particles)
+        wellData = numpy.zeros(self.particles)
         for lineCounter in range(start+2, end+1):
             print("here")
             line = linecache.getline(self.myDataFile, lineCounter)
             print("line %s start %s end %s lineCounter %s" % (line, start, end, lineCounter))
             propertyList = line.split()
-            if propertyList[1] == "FLOWRATE":
-                wellRates[int(propertyList[0])] = propertyList[2]
+            if dataType=="FLOWRATE":
+                if propertyList[1] == "FLOWRATE":
+                    wellData[int(propertyList[0])] = propertyList[2]
+            if dataType=="SKIN":
+                if propertyList[1] == "SKIN":
+                    wellData[int(propertyList[0])] = propertyList[2]
+            if dataType=="RW":
+                if propertyList[1] == "RW":
+                    wellData[int(propertyList[0])] = propertyList[2]
+            if dataType=="PERFTHICK":
+                if propertyList[1] == "PERFTHICK":
+                    wellData[int(propertyList[0])] = propertyList[2]
             linecache.clearcache()
-        return wellRates
+        return wellData

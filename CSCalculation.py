@@ -436,6 +436,8 @@ class CSCalculator():
         posSeries = pd.Series()
         faceAreaSeries = pd.Series()
         volumeSeries = pd.Series()
+        permeabilitySeries = pd.Series()
+        distanceSeries = pd.Series()
 
         for cell in aContainer:
             neighborSeries = neighborSeries.append(pd.Series([cell.neighbors()], index=[cell.id]))
@@ -443,11 +445,39 @@ class CSCalculator():
             faceAreaSeries = faceAreaSeries.append(pd.Series([cell.face_areas()], index=[cell.id]))
             volumeSeries = volumeSeries.append(pd.Series([cell.volume()], index=[cell.id]))
 
+
         data = {'neighbors': neighborSeries,
                 'positions': posSeries,
                 'faceAreas': faceAreaSeries,
                 'volumes': volumeSeries}
         myDataFrame = pd.DataFrame(data)
+
+        for cellIndex in range(0, len(myDataFrame)):
+            permList = []
+            distanceList = []
+            if cellIndex%100 == 0:
+                print("cellIndex: %s" % cellIndex)
+            numberOfNeighbors = len(myDataFrame['neighbors'][cellIndex])
+            for neighborIndex in range(0, numberOfNeighbors):
+                neighbor = myDataFrame['neighbors'][cellIndex][neighborIndex]
+                if neighbor >= 0:
+                    permList.append(self.getPermeability(myDataFrame, cellIndex, neighbor))
+                    distanceList.append(self.findDistance(myDataFrame['positions'][cellIndex],myDataFrame['positions'][neighbor]))
+                else:
+                    permList.append(self.getPermeability(myDataFrame,cellIndex, cellIndex))
+                    # assuming the block is a perfect cube, I have calculated the distance from the particle to the boundary
+                    distanceList.append(math.pow(myDataFrame['volumes'][cellIndex], 1.0/3.0))
+            permeabilitySeries = permeabilitySeries.append(pd.Series([permList], index=[cellIndex]))
+            distanceSeries = distanceSeries.append(pd.Series([distanceList], index=[cellIndex]))
+
+
+        calculatedData = {'permeability': permeabilitySeries,
+                          'distance': distanceSeries}
+        myCalDataFrame = pd.DataFrame(calculatedData)
+
+        myDataFrame = pd.concat([myDataFrame, myCalDataFrame], axis=1, join_axes=[myDataFrame.index])
+
+        print(myDataFrame)
 
         for timeStep in range(0, numberOfTimeSteps):
             print("timeStep: %s" % timeStep)
@@ -463,8 +493,8 @@ class CSCalculator():
                     for neighborIndex in range(0, numberOfNeighbors):
                         neighbor = myDataFrame['neighbors'][cellIndex][neighborIndex]
                         if neighbor >= 0:
-                            length = self.findDistance(myDataFrame['positions'][cellIndex],myDataFrame['positions'][neighbor])
-                            self.permeability = self.getPermeability(myDataFrame, cellIndex, neighbor)
+                            length = myDataFrame['distance'][cellIndex][neighborIndex]
+                            self.permeability = myDataFrame['permeability'][cellIndex][neighborIndex]
                             coefficient[cellIndex][neighbor] = (self.betaConstant
                                                                 * myDataFrame['faceAreas'][cellIndex][neighborIndex]
                                                                 * self.permeability) / (self.getViscosity(myDataFrame, cellIndex, neighbor)

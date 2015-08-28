@@ -13,9 +13,10 @@ class CSFluidProperties():
         self.referenceFVF = self.reader.readSingleFloatValue("REFFVF")
         self.pressureAtBubblePoint = self.reader.readSingleFloatValue("BPPRESSURE")
         self.viscosityAtBubblePoint = self.reader.readSingleFloatValue("BPVISCOSITY")
+        self.fluidDensity = 62.4
         #self.referenceDepth = 7000.
         #self.referencePressure = 3031.
-        #self.fluidDensity = 62.4
+
 
     def findGammaFluid(self, pressure):
         # TODO the value should change with pressure and temperature
@@ -23,11 +24,11 @@ class CSFluidProperties():
         gravityAcceleration = 32.17
         # Eqn 2.101 or Eqn 8.88 in Ertekin
         self.fluidDensity = self.referenceDensity*(1+self.liquidCompressibility*(pressure - self.referencePressure))
-        print(self.fluidDensity)
         gammaFluid = gammaConstant*self.fluidDensity*gravityAcceleration
         return gammaFluid
 
     def findFormationVolumeFactor(self, pressure):
+        # TODO the formation volume factor should include the temperature effect as well (see Ertekin Eq 2.81)
         newFormationVolumeFactor = self.referenceFVF/(1+self.liquidCompressibility*(pressure-self.referencePressure))
         return newFormationVolumeFactor
 

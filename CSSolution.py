@@ -46,6 +46,4 @@ class CSSolver():
         a = np.array(coefficientArray)
         b = np.array(rightHandSideArray)
 
-        print("determinant: %s" % np.linalg.det(a))
-
         return np.linalg.solve(a, b)

@@ -253,8 +253,8 @@ class CSCalculator():
         myProperty = CSProperties.CSFluidProperties()
         formationVolumeFactor = factor*myProperty.findFormationVolumeFactor(self.finalPressure[cellId]) \
                                 + (1-factor)*myProperty.findFormationVolumeFactor(self.finalPressure[neighborId])
-        #return formationVolumeFactor
-        return 1.0
+        return formationVolumeFactor
+        #return 1.0
 
     def getViscosity(self, aDataFrame, cellId, neighborId):
         # explicit treatment of the parameters, pressures are at time step n
@@ -265,8 +265,8 @@ class CSCalculator():
         myProperty = CSProperties.CSFluidProperties()
         viscosity = factor*myProperty.findViscosity(self.finalPressure[cellId],1) \
                                 + (1-factor)*myProperty.findViscosity(self.finalPressure[neighborId],1)
-        #return viscosity
-        return 10.
+        return viscosity
+        #return 10.
 
     # TODO It would be better to read all the data at the beginning and check for errors instead of reading in separate functions
     def getBottomHolePressure(self, aContainer, cellId, blockPressure):
@@ -443,10 +443,10 @@ class CSCalculator():
             faceAreaSeries = faceAreaSeries.append(pd.Series([cell.face_areas()], index=[cell.id]))
             volumeSeries = volumeSeries.append(pd.Series([cell.volume()], index=[cell.id]))
 
-        data = {'neighbors':neighborSeries,
-	        'positions':posSeries,
-	        'faceAreas':faceAreaSeries,
-            'volumes':volumeSeries}
+        data = {'neighbors': neighborSeries,
+                'positions': posSeries,
+                'faceAreas': faceAreaSeries,
+                'volumes': volumeSeries}
         myDataFrame = pd.DataFrame(data)
 
         for timeStep in range(0, numberOfTimeSteps):
@@ -454,7 +454,8 @@ class CSCalculator():
             for iteration in range(0, 1):
                 print("iteration: %s" % iteration)
                 for cellIndex in range(0, len(myDataFrame)):
-                    print("cellIndex: %s" % cellIndex)
+                    if cellIndex%100 == 0:
+                        print("cellIndex: %s" % cellIndex)
                     totalCoefficient = 0
                     totalGravity = 0
                     totalRightHandSideGravity = 0
@@ -483,12 +484,12 @@ class CSCalculator():
                     # this version assumes constant porosity
 
                     if (self.pressure[cellIndex]-self.finalPressure[cellIndex]) == 0.0:
-                        #print("cellid: %s - yes denominator is zero" % cell.id)
+                        #print("cellID: %s - yes denominator is zero" % cell.id)
                         self.pressure[cellIndex]=self.finalPressure[cellIndex]-0.1
 
                     gamma[cellIndex] = (myDataFrame['volumes'][cellIndex]/self.alphaConstant) \
                                      * ((self.porosity[cellIndex]/myProperties.findFormationVolumeFactor(self.finalPressure[cellIndex]))
-                                        * (myProperties.findFormationVolumeFactor(self.finalPressure[cell.id])
+                                        * (myProperties.findFormationVolumeFactor(self.finalPressure[cellIndex])
                                            /myProperties.findFormationVolumeFactor(self.pressure[cellIndex])-1)
                                         /(self.pressure[cellIndex]-self.finalPressure[cellIndex]))
 

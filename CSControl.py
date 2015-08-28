@@ -29,7 +29,7 @@ class CSController:
 
         #calculator.simRunIncompressible(cont, self.particles)
 
-        calculator.simRunSlightlyCompressibleNew(cont)
+        calculator.simRunSlightlyCompressible(cont)
 
         t2 = time.time()
         print('it took %s seconds' % (t2 - t1))

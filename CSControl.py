@@ -1,9 +1,15 @@
 __author__ = 'caglars'
 
+
+#Porosity change is ignored
+#Gravity is added
+#pressure dependant FVF and viscosity are added
+#Working for undersaturated reservoir slightly compressible fluid
+
+
 import time
 
 import CSCalculation
-import CSPlot
 
 class CSController:
     def __init__(self):

@@ -1,5 +1,7 @@
 __author__ = 'caglars'
 
+import pandas as pd
+
 class CSPlotter():
 
 
@@ -30,6 +32,7 @@ class CSPlotter():
             verticesFile.write("\n\n\n")
             pass
 
+
     def graphr(self, aContainer, timeStep):
 
         pressureOutFile = open("pressureOut{0}.csv".format(timeStep), "w")
@@ -45,6 +48,7 @@ class CSPlotter():
 
         pressureOutFile.close()
 
+
     def pressureAtParticle(self, particle, timeStep, pressure):
         pressureAtParticleFile = open("pressureAtParticle{}.dat".format(particle), "a")
 
@@ -52,12 +56,14 @@ class CSPlotter():
 
         pressureAtParticleFile.close()
 
+
     def pressureAtParticleDetail(self, particle, timeStep, iteration, pressure):
         pressureAtParticleDetailFile = open("pressureAtParticleDetail{}.dat".format(particle), "a")
 
-        pressureAtParticleDetailFile.write("%s %s\n" % (timeStep, pressure[particle]))
+        pressureAtParticleDetailFile.write("%s %s %s\n" % (timeStep, iteration, pressure[particle]))
 
         pressureAtParticleDetailFile.close()
+
 
     def permeabilityGraphr(self, aContainer, permeabilityX, permeabilityY, permeabilityZ):
 
@@ -100,9 +106,22 @@ class CSPlotter():
 
         permZGraphrFile.close()
 
+
     def writeBottomHolePressure(self, particle, timeStep, pressure):
         bottomHolePressureFile = open("pressureWfAtParticle{}.dat".format(particle), "a")
 
         bottomHolePressureFile.write("%s %s\n" % (timeStep, pressure))
 
         bottomHolePressureFile.close()
+
+
+    def writeDataFrame(self, timestep, data):
+        #to write any data frame such as coefficient
+
+        dataFrame = pd.DataFrame(data)
+        dataFrameFile = open("dataFrame{}.xls".format(timestep), "w")
+
+        dataFrameFile.write(dataFrame.to_string())
+
+        dataFrameFile.close()
+

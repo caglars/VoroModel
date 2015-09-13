@@ -487,7 +487,7 @@ class CSCalculator():
 
         for timeStep in range(0, numberOfTimeSteps):
             print("timeStep: %s" % timeStep)
-            for iteration in range(0, 1):
+            for iteration in range(0, 2):
                 print("iteration: %s" % iteration)
                 for cellIndex in range(0, len(myDataFrame)):
                     if cellIndex%100 == 0:
